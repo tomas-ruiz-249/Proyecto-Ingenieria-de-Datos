@@ -5,10 +5,10 @@ class Parser
     public Parser()
     {
         _client = new HttpClient();
-        _repository = new Repository();
+        _currentDoc = new HtmlDocument();
     }
 
-    public async Task<List<Uri>> Parse(Uri url, HashSet<Uri> visited)
+    public async Task<bool> loadHTML(Uri url)
     {
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("Parsing: " + url);
@@ -24,30 +24,29 @@ class Parser
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("INVALID URL: " + url);
             Console.ForegroundColor = ConsoleColor.White;
-            return new List<Uri>();
+            return false;
         }
         catch (System.NotSupportedException){
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("SCHEME NOT SUPPORTED: " + url);
             Console.ForegroundColor = ConsoleColor.White;
-            return new List<Uri>();
+            return false;
         }
         catch (Exception)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine("ERROR PARSING:" + url);
             Console.ForegroundColor = ConsoleColor.White;
-            return new List<Uri>();
+            return false;
         }
 
-        var htmlDoc = new HtmlDocument();
-        htmlDoc.LoadHtml(htmlStr);
-        return ParseUrls(htmlDoc, url, visited);
+        _currentDoc.LoadHtml(htmlStr);
+        return true;
     }
 
-    private List<Uri> ParseUrls(HtmlDocument doc, Uri url, HashSet<Uri> visited)
+    public List<Uri> ExtractUrls(HashSet<Uri> visited)
     {
-        var linkNodes = doc.DocumentNode.SelectNodes("//a[@href]");
+        var linkNodes = _currentDoc.DocumentNode.SelectNodes("//a[@href]");
         var scrapedLinks = new List<Uri>();
         if (linkNodes == null) return scrapedLinks;
 
@@ -56,40 +55,40 @@ class Parser
             var link = node.Attributes["href"]?.Value;
             if (link == null) continue;
 
-            if (!link.Contains("http"))
-            {
-                link = url.Scheme + "://" + url.Host + link;
-            }
-            
             try
             {
-                var formattedUrl = new Uri(link);
-                if (visited.Contains(formattedUrl) || formattedUrl == url)
+                var extractedUrl = new Uri(link);
+                if (visited.Contains(extractedUrl))
                 {
-                    Console.ForegroundColor = ConsoleColor.Magenta;
-                    Console.WriteLine("ALREADY VISITED, SKIPPING QUEUEING: " + link);
+                    // Console.ForegroundColor = ConsoleColor.Magenta;
+                    // Console.WriteLine("ALREADY VISITED, SKIPPING QUEUEING: " + link);
                     continue;
                 }
-                scrapedLinks.Add(formattedUrl);
+                scrapedLinks.Add(extractedUrl);
             }
             catch (System.UriFormatException)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("INVALID URL" + link);
+                // Console.ForegroundColor = ConsoleColor.Red;
+                // Console.WriteLine("INVALID URL" + link);
                 continue;
             }
 
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine('[' + link + "] ");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine(node.InnerText);
-            Console.WriteLine("--------");
+            // Console.ForegroundColor = ConsoleColor.Cyan;
+            // Console.WriteLine('[' + link + "] ");
+            // Console.ForegroundColor = ConsoleColor.White;
+            // Console.WriteLine(node.InnerText);
+            // Console.WriteLine("--------");
         }
 
         return scrapedLinks;
     }
 
+    public string GetHtml()
+    {
+        return _currentDoc.DocumentNode.OuterHtml;
+    }
+
     private readonly HttpClient _client;
-    private readonly Repository _repository;
+    private readonly HtmlDocument _currentDoc;
 }
 
