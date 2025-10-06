@@ -19,7 +19,7 @@ class Crawler
         _repository = new Repository("server=localhost;user=root;port=3306;");
     }
 
-    public async Task Crawl()
+    public async Task Crawl(string startUrl)
     {
         if(_urls.Count == 0){
             Console.WriteLine("Empty Queue!");

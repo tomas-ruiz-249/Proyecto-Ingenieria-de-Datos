@@ -6,6 +6,17 @@ class Parser
     {
         _client = new HttpClient();
         _currentDoc = new HtmlDocument();
+        _repository = new Repository("server=localhost;user=root;database=world;port=3306;");
+        var successfulConnection = _repository.ConnectToServer();
+        if (!successfulConnection)
+        {
+            Console.WriteLine("Database connection unsuccessful...");
+            return;
+        }
+        else
+        {
+            Console.WriteLine("connected to database successfully.");
+        }
     }
 
     public async Task<bool> loadHTML(Uri url)
@@ -21,22 +32,22 @@ class Parser
         }
         catch (System.InvalidOperationException)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("INVALID URL: " + url);
-            Console.ForegroundColor = ConsoleColor.White;
+            // Console.ForegroundColor = ConsoleColor.Red;
+            // Console.WriteLine("INVALID URL: " + url);
+            // Console.ForegroundColor = ConsoleColor.White;
             return false;
         }
         catch (System.NotSupportedException){
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("SCHEME NOT SUPPORTED: " + url);
-            Console.ForegroundColor = ConsoleColor.White;
+            // Console.ForegroundColor = ConsoleColor.Red;
+            // Console.WriteLine("SCHEME NOT SUPPORTED: " + url);
+            // Console.ForegroundColor = ConsoleColor.White;
             return false;
         }
         catch (Exception)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("ERROR PARSING:" + url);
-            Console.ForegroundColor = ConsoleColor.White;
+            // Console.ForegroundColor = ConsoleColor.Red;
+            // Console.WriteLine("ERROR PARSING:" + url);
+            // Console.ForegroundColor = ConsoleColor.White;
             return false;
         }
 
@@ -90,5 +101,6 @@ class Parser
 
     private readonly HttpClient _client;
     private readonly HtmlDocument _currentDoc;
+    private readonly Repository _repository;
 }
 

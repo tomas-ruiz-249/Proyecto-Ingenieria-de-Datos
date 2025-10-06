@@ -25,16 +25,11 @@ class Repository
         try
         {
             string query = """
-            use WebCrawler;
-            select * from Usuario;
+                use WebCrawler;
+                insert into Usuario (nombre, contraseña) values("tomas", "1234");
             """;
             MySqlCommand cmd = new MySqlCommand(query, conn);
-            MySqlDataReader rdr = cmd.ExecuteReader();
-            while (rdr.Read())
-            {
-                Console.WriteLine(rdr[0] + "|" + rdr[1] + "|" + rdr[2]);
-            }
-            rdr.Close();
+            int rowsAffected = cmd.ExecuteNonQuery();
         }
         catch (Exception ex)
         {
