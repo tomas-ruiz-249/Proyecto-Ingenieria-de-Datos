@@ -5,7 +5,6 @@ class Crawler
         _urls = new Queue<Uri>();
         _parser = new Parser();
         _visited = [];
-        _repository = new Repository("server=localhost;user=root;database=world;port=3306;");
     }
 
     public Crawler(List<string> urlList) {
@@ -15,8 +14,7 @@ class Crawler
             _urls.Enqueue(new Uri(url));
         }
         _parser = new Parser();
-        _visited = new HashSet<Uri>();
-        _repository = new Repository("server=localhost;user=root;port=3306;");
+        _visited = [];
     }
 
     public async Task Crawl(string startUrl)
@@ -26,17 +24,6 @@ class Crawler
             return;
         }
 
-        var successfulConnection = _repository.ConnectToServer();
-        if (!successfulConnection)
-        {
-            Console.WriteLine("Database connection unsuccessful...");
-            return;
-        }
-        else
-        {
-            Console.WriteLine("connected to database successfully.");
-        }
-        _repository.StoreHtml("");
 
         while (_urls.Count != 0 && _visited.Count < _siteLimit)
         {
@@ -66,5 +53,4 @@ class Crawler
     private readonly Queue<Uri> _urls;
     private readonly HashSet<Uri> _visited;
     private readonly Parser _parser;
-    private readonly Repository _repository;
 }
