@@ -1,5 +1,5 @@
-create database BaseCrawler;
-use BaseCrawler;
+create database BaseWebCrawler;
+use BaseWebCrawler;
 
 create table Usuario(
     id int primary key auto_increment not null,
