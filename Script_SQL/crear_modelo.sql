@@ -1,28 +1,19 @@
-drop database WebCrawler;
-create database WebCrawler;
-use WebCrawler;
+create database BaseWebCrawler;
+use BaseWebCrawler;
 
 create table Usuario(
     id int primary key auto_increment not null,
-    nombre varchar(30) not null,
-    contraseña varchar(20) not null
-);
-select * from Usuario;
-
-create table Resultado(
-    id int primary key auto_increment not null,
-    url varchar(500),
-    estado  int,
-    fecha_extraccion datetime,
-    id_fuenteFK int,
-    foreign key (id_fuenteFK) references Fuente(id)
+    nombres varchar(50) not null,
+    apellidos varchar(50) not null,
+    contraseña varchar(20) not null,
+    correo varchar(50) not null 
 );
 
 create table Fuente(
     id int primary key auto_increment not null,
-    dominio varchar(50),
-    tipo int,
-    nombre_fuente varchar(50)
+    dominio varchar(50) not null, 
+    tipo varchar(50),
+    nombre  varchar(50) not null
 );
 
 create table Articulo(
@@ -32,21 +23,30 @@ create table Articulo(
     subtitulo varchar(100),
     cuerpo varchar(100),
     fecha datetime,
-    id_usuario int,
-    id_resultado int,
-    foreign key (id_usuario) references Usuario(id),
-    foreign key (id_resultado) references Resultado(id)
+    idResultado int not null,
+    favortio bool not null
+);
+
+create table Resultado(
+    id int primary key auto_increment not null,
+    idUsuario int not null,
+    estado  int not null,
+    fechaExtraccion datetime not null,
+	foreign key (idUsuario) references Usuario(id),
+    foreign key (idUsuario) references Articulo(id)
 );
 
 create table Notificacion(
     id int primary key auto_increment not null,
-	mensaje varchar(11),
-    tipo int
+	mensaje varchar(11) not null,
+    tipo int not null, 
+    idResultado int not null,
+	foreign key (idResultado) references Resultado(id)
 );
 
-create table Notificacion_resultado(
-    id_notificacion int,
-    id_resultado int,
-    foreign key (id_notificacion) references Notificacion(id),
-    foreign key (id_resultado) references Resultado(id)
+create table ArticuloDetalle(
+    idArticulo int,
+    idFuente int,
+    foreign key (idArticulo) references Articulo(id),
+	foreign key (idFuente) references Fuente(id)
 );
