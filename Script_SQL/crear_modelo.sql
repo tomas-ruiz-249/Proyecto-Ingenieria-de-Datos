@@ -1,5 +1,5 @@
-create database BaseWebCrawler;
-use BaseWebCrawler;
+create database WebCrawler;
+use WebCrawler;
 
 create table Usuario(
     id int primary key auto_increment not null,
@@ -16,6 +16,14 @@ create table Fuente(
     nombre  varchar(50) not null
 );
 
+create table Resultado(
+    id int primary key auto_increment not null,
+    idUsuarioFK int not null,
+    estado  int not null,
+    fechaExtraccion datetime not null,
+	foreign key (idUsuarioFK) references Usuario(id)
+);
+
 create table Articulo(
     id int primary key auto_increment not null,
     tema varchar(50),
@@ -23,30 +31,22 @@ create table Articulo(
     subtitulo varchar(100),
     cuerpo varchar(100),
     fecha datetime,
-    idResultado int not null,
-    favortio bool not null
-);
-
-create table Resultado(
-    id int primary key auto_increment not null,
-    idUsuario int not null,
-    estado  int not null,
-    fechaExtraccion datetime not null,
-	foreign key (idUsuario) references Usuario(id),
-    foreign key (idUsuario) references Articulo(id)
+    idResultadoFK int not null,
+    favorito bool not null,
+    foreign key (idResultadoFK) references Resultado(id)
 );
 
 create table Notificacion(
     id int primary key auto_increment not null,
 	mensaje varchar(11) not null,
     tipo int not null, 
-    idResultado int not null,
-	foreign key (idResultado) references Resultado(id)
+    idResultadoFK int not null,
+	foreign key (idResultadoFK) references Resultado(id)
 );
 
 create table ArticuloDetalle(
-    idArticulo int,
-    idFuente int,
-    foreign key (idArticulo) references Articulo(id),
-	foreign key (idFuente) references Fuente(id)
+    idArticuloFK int,
+    idFuenteFK int,
+    foreign key (idArticuloFK) references Articulo(id),
+	foreign key (idFuenteFK) references Fuente(id)
 );
