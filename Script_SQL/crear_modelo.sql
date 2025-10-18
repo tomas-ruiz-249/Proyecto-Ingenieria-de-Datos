@@ -46,8 +46,8 @@ create table Notificacion(
 );
 
 create table ArticuloDetalle(
-    idArticuloFK int unique,
-    idFuenteFK int unique,
+    idArticuloFK int unique not null,
+    idFuenteFK int unique not null,
     foreign key (idArticuloFK) references Articulo(id),
 	foreign key (idFuenteFK) references Fuente(id)
 );
