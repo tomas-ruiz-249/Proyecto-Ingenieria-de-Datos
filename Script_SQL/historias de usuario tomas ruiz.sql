@@ -251,7 +251,7 @@ DELIMITER ;
 DELIMITER $$
 CREATE PROCEDURE MostrarCantidadArticulos(IN idUsuarioP INT)
 BEGIN
-	SELECT COUNT(*) AS ArticulosTotal FROM Articulo a
+	SELECT COUNT(a.id) AS ArticulosTotal FROM Articulo a
     INNER JOIN Resultado r ON a.idResultadoFK = r.id
     WHERE idUsuarioP = r.idUsuarioFK;
 END $$
@@ -579,10 +579,10 @@ DELIMITER ;
 
 #HU038 Cambiar nombre y apellido
 DELIMITER $$
-CREATE PROCEDURE CambiarNombreApellidoUsuario(IN correo VARCHAR(50),IN nuevoNombre VARCHAR(50),IN nuevoApellido VARCHAR(50),OUT mensaje VARCHAR(100)
+CREATE PROCEDURE CambiarNombreApellidoUsuario(IN idP INT,IN nuevoNombre VARCHAR(50),IN nuevoApellido VARCHAR(50),OUT mensaje VARCHAR(100)
 )
 BEGIN
-    Update Usuario SET nombre = nuevoNombre, apellido = nuevoApellido Where correo = correo;
+    Update Usuario SET nombre = nuevoNombre, apellido = nuevoApellido Where id = idP;
     SET mensaje = "Nombre y apellido actualizados correctamente";
 END $$
 DELIMITER ;
