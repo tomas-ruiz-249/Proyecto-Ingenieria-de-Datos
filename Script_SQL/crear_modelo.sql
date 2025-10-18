@@ -11,7 +11,7 @@ create table Usuario(
 
 create table Fuente(
     id int primary key auto_increment not null,
-    dominio varchar(50) not null, 
+    url varchar(50) not null, 
     tipo varchar(50),
     nombre  varchar(50) not null
 );
@@ -46,8 +46,8 @@ create table Notificacion(
 );
 
 create table ArticuloDetalle(
-    idArticuloFK int,
-    idFuenteFK int,
+    idArticuloFK int unique,
+    idFuenteFK int unique,
     foreign key (idArticuloFK) references Articulo(id),
 	foreign key (idFuenteFK) references Fuente(id)
 );
