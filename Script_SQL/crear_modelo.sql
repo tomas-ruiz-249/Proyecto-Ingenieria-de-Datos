@@ -307,3 +307,293 @@ BEGIN
     END IF;
 END$$
 DELIMITER ;
+
+-- HU005 Asignar articulos como favoritos-----------------------
+delimiter $$
+create procedure toggle_favorito(
+    in p_id_articulo int,
+    in p_favorito bool
+)
+begin
+    if exists (select 1 from articulo where id = p_id_articulo) then
+        update articulo
+        set favorito = p_favorito
+        where id = p_id_articulo;
+        select 'el articulo fue actualizado correctamente' as mensaje;
+    else
+        select 'el articulo no existe' as mensaje;
+    end if;
+end$$
+delimiter ;
+call toggle_favorito(1, true);
+
+-- HU004 Descartar articulos ---------------------------------------
+delimiter $$
+create procedure eliminarArticulo(
+    in p_id_articulo int,
+    in p_confirmacion bool
+)
+begin
+    if not p_confirmacion then
+        select 'eliminacion cancelada por el usuario' as mensaje;
+    else
+        if exists (select 1 from articulo where id = p_id_articulo) then
+            delete from articulodetalle where idarticulofk = p_id_articulo;
+            delete from articulo where id = p_id_articulo;
+            select 'el articulo fue eliminado correctamente' as mensaje;
+        else
+            select 'el articulo no existe' as mensaje;
+        end if;
+    end if;
+end$$
+delimiter ;
+call eliminarArticulo(4, true);
+select * from articulo;
+
+-- HU019 Generar notificaciones ------------------------------------
+delimiter $$
+create procedure registrar_articulo( ##Genera notificacion cuando registra un articulo o genera error 
+    in p_tema varchar(50),
+    in p_titular varchar(100),
+    in p_subtitulo varchar(100),
+    in p_cuerpo varchar(100),
+    in p_fecha datetime,
+    in p_id_resultado int
+)
+begin
+    declare exit handler for sqlexception
+    begin
+        insert into notificacion(mensaje, tipo, leido, idresultadofk)
+        values('art_err', 2, false, p_id_resultado);
+    end;
+
+    insert into articulo(tema, titular, subtitulo, cuerpo, fecha, idresultadofk, favorito)
+    values(p_tema, p_titular, p_subtitulo, p_cuerpo, p_fecha, p_id_resultado, false);
+
+    insert into notificacion(mensaje, tipo, leido, idresultadofk)
+    values('art_ok', 1, false, p_id_resultado);
+end$$
+delimiter ;
+
+delimiter $$
+create procedure notificar_fin_busqueda( ##Genera notificacion cuando termina la busqueda o genera error
+    in p_id_resultado int,
+    in p_exito bool
+)
+begin
+    if p_exito then
+        insert into notificacion(mensaje, tipo, leido, idresultadofk)
+        values('bus_ok', 3, false, p_id_resultado);
+    else
+        insert into notificacion(mensaje, tipo, leido, idresultadofk)
+        values('bus_err', 4, false, p_id_resultado);
+    end if;
+end$$
+delimiter ;
+call registrar_articulo('politica', 'nuevo debate', 'senado', 'texto', now(), 4);
+call notificar_fin_busqueda(5, true);
+call notificar_fin_busqueda(5, false);
+
+/* select * from resultado;
+select * from notificacion;
+call eliminar_resultado_antiguo(2);
+set sql_safe_updates = 0; */
+
+-- HU030 Eliminar notificacion --------------------------------------------
+delimiter $$
+create procedure eliminar_notificacion(
+    in p_id_notificacion int,
+    in p_confirmacion bool
+)
+begin
+    if not p_confirmacion then
+        select 'eliminacion cancelada por el usuario' as mensaje;
+    else
+        if exists (select 1 from notificacion where id = p_id_notificacion) then
+            delete from notificacion where id = p_id_notificacion;
+            select 'la notificacion fue eliminada correctamente' as mensaje;
+        else
+            select 'la notificacion no existe' as mensaje;
+        end if;
+    end if;
+end$$
+delimiter ;
+call eliminar_notificacion(23, true);
+call eliminar_notificacion(10, false);
+select * from notificacion;
+
+-- HU014 Conservar articulo -------------------------------------------------
+delimiter $$
+create procedure conservarArticulo(
+    in p_id_articulo int,
+    in p_conservar boolean
+)
+begin
+    declare v_titular varchar(100);
+
+    if exists (select 1 from articulo where id = p_id_articulo) then
+        select titular into v_titular from articulo where id = p_id_articulo;
+
+        if p_conservar then
+			rollback;
+        else
+            delete from articulodetalle where idarticulofk = p_id_articulo;
+            delete from articulo where id = p_id_articulo;
+        end if;
+    else
+        select 'el articulo no existe' as mensaje;
+    end if;
+end$$
+delimiter ;
+call conservarArticulo(8, false);
+select * from articulo;
+
+-- HU012 Actualizar articulo -------------------------------------------------
+delimiter $$
+create procedure actualizar_articulo(
+    in p_url varchar(50),
+    in p_titular varchar(100),
+    in p_subtitulo varchar(100),
+    in p_cuerpo varchar(100),
+    in p_fecha datetime,
+    in p_id_resultado int
+)
+begin
+    declare v_id_articulo int;
+
+    select a.id as id_articulo into v_id_articulo
+    from articulo a
+    join articulodetalle ad on ad.idarticulofk = a.id
+    join fuente f on f.id = ad.idfuentefk
+    where f.url = p_url
+    limit 1;
+
+    if v_id_articulo is not null then
+        if (select a.titular as titular from articulo a where a.id = v_id_articulo) <> p_titular
+           or (select a.subtitulo as subtitulo from articulo a where a.id = v_id_articulo) <> p_subtitulo
+           or (select a.cuerpo as cuerpo from articulo a where a.id = v_id_articulo) <> p_cuerpo
+        then
+            update articulo
+            set titular = p_titular,
+                subtitulo = p_subtitulo,
+                cuerpo = p_cuerpo,
+                fecha = p_fecha
+            where id = v_id_articulo;
+
+            insert into notificacion(mensaje, tipo, leido, idresultadofk)
+            values('art_actualizado', 1, false, p_id_resultado);
+        end if;
+    end if;
+end$$
+delimiter ;
+call actualizar_articulo(
+    'www.portafolio.co',                          -- url de la fuente
+    'El dólar sigue subiendo y rompe récord',      -- nuevo titular
+    'Impacto en la economía colombiana',          -- nuevo subtitulo
+    'El precio del dólar alcanzó 4.250 pesos...', -- nuevo cuerpo
+    now(),                                        -- fecha de actualización
+    2                                             -- idResultadoFK
+);
+
+-- HU020 Actualizar Resultado ------------------------------------------------------------
+delimiter $$
+create procedure actualizar_estado_resultado(
+    in p_id_resultado int,
+    in p_estado int
+)
+begin
+    if exists (select 1 from resultado where id = p_id_resultado) then
+        update resultado
+        set estado = p_estado
+        where id = p_id_resultado;
+        select concat('Resultado con id ', p_id_resultado, ' actualizado a estado ', p_estado) as mensaje;
+    else
+        select concat('Error: Resultado con id ', p_id_resultado, ' no existe') as mensaje;
+    end if;
+end$$
+delimiter ;
+call actualizar_estado_resultado(3, 1);
+select * from resultado;
+
+-- HU013 Asignar Fuentes Iniciales ----------------------------------------------------------
+create table FuentesIniciales(
+    id int primary key auto_increment not null,
+    idFuenteFK int not null,
+    foreign key (idFuenteFK) references Fuente(id)
+);
+
+delimiter $$
+create procedure registrar_fuente_inicial(
+    in p_id_fuente int
+)
+begin
+    if exists (select 1 from Fuente where id = p_id_fuente) then
+        insert ignore into FuentesIniciales(idFuenteFK)
+        values(p_id_fuente);
+
+        select concat('Fuente con id ', p_id_fuente, ' registrada como fuente inicial') as mensaje;
+    else
+        select concat('Error: Fuente con id ', p_id_fuente, ' no existe') as mensaje;
+    end if;
+end$$
+delimiter ;
+call registrar_fuente_inicial(2);
+
+-- HU021 Eliminar Registros ------------------------------------------------ (problema de safeKEY)
+
+delimiter $$
+create procedure eliminar_resultado_antiguo(
+    in p_id_resultado int
+)
+begin
+    if exists (select 1 from Resultado where id = p_id_resultado) then
+        delete from ArticuloDetalle
+        where idArticuloFK in (select id from Articulo where idResultadoFK = p_id_resultado);
+
+        delete from Articulo
+        where idResultadoFK = p_id_resultado;
+
+        delete from Notificacion
+        where idResultadoFK = p_id_resultado;
+
+        delete from Resultado
+        where id = p_id_resultado;
+
+        select concat('Resultado con id ', p_id_resultado, ' y sus registros asociados han sido eliminados') as mensaje;
+    else
+        select concat('Error: Resultado con id ', p_id_resultado, ' no existe') as mensaje;
+    end if;
+end$$
+delimiter ;
+call eliminar_resultado_antiguo(3);
+
+-- HU026 Eliminar Usuario---------------------------------------------- 
+delimiter $$
+create procedure eliminarArticulosUsuario(in p_id_usuario int)
+begin
+    declare v_existe int;
+    declare v_cant int;
+
+    select count(*) into v_existe
+    from articulo a
+    inner join resultado r on a.idresultadofk = r.id
+    where r.idusuariofk = p_id_usuario;
+
+    if v_existe = 0 then
+        signal sqlstate '45000'
+        set message_text = 'no existen articulos para este usuario.';
+    else
+        delete ad from articulodetalle ad
+        inner join articulo a on ad.idarticulofk = a.id
+        inner join resultado r on a.idresultadofk = r.id
+        where r.idusuariofk = p_id_usuario;
+
+        delete a from articulo a
+        inner join resultado r on a.idresultadofk = r.id
+        where r.idusuariofk = p_id_usuario;
+
+        select v_existe as articulos_eliminados;
+    end if;
+end $$
+delimiter ;
+call eliminarArticulosUsuario(2);
