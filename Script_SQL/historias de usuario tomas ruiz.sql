@@ -58,32 +58,6 @@ INSERT INTO ArticuloDetalle (idArticuloFK, idFuenteFK) VALUES
 (6, 6),  -- Sixth article with sixth source
 (7, 7);  -- Seventh article with seventh source
 
-#HU001 Registrar Articulo
-Delimiter $$
-Create Procedure RegistrarArticulo(IN xTema VARCHAR(50),IN xTitular VARCHAR(100),IN xSubtitulo VARCHAR(100),IN xCuerpo VARCHAR(100),IN xFecha DATETIME,IN xIdResultado INT,IN xIdFuente INT,OUT mensaje VARCHAR(100))
-Begin
-	Insert Into Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK, favorito)
-    Values (
-        xTema,xTitular,IFNULL(xSubtitulo, ''),IFNULL(xCuerpo, ''),xFecha,xIdResultado,FALSE
-    );
-    -- Guardacion de la fuente
-    Insert Into ArticuloDetalle (idArticuloFK, idFuenteFK)
-    Values (LAST_INSERT_ID(), pIdFuente);
-
-    SET mensaje = 'Artículo registrado correctamente';
-End $$
-Delimiter ;
-
-DELIMITER $$
-CREATE TRIGGER NotificacionArticuloAgregado
-    AFTER INSERT
-    ON Articulo
-    FOR EACH ROW
-BEGIN
-    Insert into Notificacion(mensaje, tipo, leido, idResultadoFK)
-    Values ('Artículo nuevo registrado', 1, FALSE, NEW.idResultadoFK);
-END $$
-DELIMITER ;
 
 -- HU001: Registar Articulo 
 DELIMITER $$
@@ -116,10 +90,10 @@ BEGIN
 
     INSERT INTO Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK, favorito)
     VALUES (
-        NULLIF(p_tema, ''),
-        NULLIF(p_titular, ''),
-        NULLIF(p_subtitulo, ''),
-        NULLIF(p_cuerpo, ''),
+        IFNULL(p_tema, ''),
+        IFNULL(p_titular, ''),
+        IFNULL(p_subtitulo, ''),
+        IFNULL(p_cuerpo, ''),
         p_fecha,
         p_idResultadoFK,
         p_favorito
@@ -142,21 +116,18 @@ Begin
 End $$
 Delimiter ;
 
-call ConsultarArticulos();
 
 #HU003 Mostrar articulos mas recientes
 Delimiter $$
 Create Procedure VisualizarArticulosRecientes()
 Begin
-	#select * from Articulo order by fecha desc; OTRA OPCION 
-    select Articulo.*, Resultado.fechaExtraccion from Articulo
-    #El primero es la otra tabla que quiero unir
-    INNER JOIN Resultado ON Articulo.idResultadoFK = Resultado.id
-    ORDER BY Resultado.fechaExtraccion DESC;
+    select a.*, r.fechaExtraccion from Articulo a
+    INNER JOIN Resultado r ON a.idResultadoFK = r.id
+    ORDER BY r.fechaExtraccion DESC;
 End $$
 Delimiter ;
 
--- HU003:  Mostrar artículos más recientes
+/* -- HU003:  Mostrar artículos más recientes
 DELIMITER $$
 CREATE PROCEDURE mostrarArticulosRecientes()
 BEGIN
@@ -169,7 +140,7 @@ BEGIN
     FROM Articulo
     ORDER BY fecha DESC;
 END $$
-DELIMITER ;
+DELIMITER ; */
 
 
 #HU006 Filtrar articulos por rango de fechas
@@ -185,18 +156,17 @@ Delimiter $$
 Create Procedure FiltroArticuloCoincidenciasTitulo(IN palabras VARCHAR(50))
 Begin
 	select * from Articulo where titular like CONCAT('%', palabras, '%');
-    
 End $$
 Delimiter ;
 
-#HU008 Filtrar Por Palabras Clave
+/* #HU008 Filtrar Por Palabras Clave
 Delimiter $$
 Create Procedure FiltroArticuloPalabrasClave(IN claves VARCHAR(100))
 Begin
 	select * from Articulo where titular like CONCAT('%', claves, '%') or subtitulo like CONCAT('%', claves, '%') or cuerpo like CONCAT('%', palabras, '%')
     order by fecha desc;
 End $$
-Delimiter ;
+Delimiter ; */
 
 -- HU008: Filtrar artículos por palabras clave
 DELIMITER $$
@@ -231,7 +201,6 @@ Delimiter $$
 Create Procedure FiltroArticuloTema(IN temabuscar VARCHAR(100))
 Begin
 	select * from Articulo where tema = temabuscar;
-    
 End $$
 Delimiter ;
 
@@ -240,16 +209,14 @@ Delimiter ;
 Delimiter $$
 Create Procedure FiltroArticuloFuente(IN fuentes VARCHAR(100))
 Begin
-	select * from Articulo 
-    #Unir con cadenas de 1 a 2 y de 2 a 3, articulo a articulodetalle y de articulodetalle a fuente
-    Inner Join ArticuloDetalle on Articulo.id = ArticuloDetalle.idArticuloFK
-    Inner Join Fuente on ArticuloDetalle.idFuenteFK = Fuente.id
-    Where Fuente.dominio = fuentes
-    #No olvidar el orden de fechas de articulos
-    Order by Articulo.fecha desc;
-    
+	select * from Articulo a
+    Inner Join ArticuloDetalle ad on a.id = ad.idArticuloFK
+    Inner Join Fuente f on ad.idFuenteFK = f.id
+    Where f.nombre = fuentes
+    Order by a.fecha desc;
 End $$
 
+#cambiar
 -- HU011: Evitar articulos duplicados
 DELIMITER $$
 CREATE PROCEDURE RegistrarFuenteSinDuplicados(
@@ -294,14 +261,14 @@ BEGIN
 END $$
 DELIMITER ;
 
-#HU017 Consultar articulos (Despues scraping = total)
+/* #HU017 Consultar articulos (Despues scraping = total)
 Delimiter $$
 Create Procedure ConsultarCantidadArticulos(OUT total INT)
 Begin
     Select COUNT(*) Into total From Articulo;
 End $$
 
-Delimiter ;
+Delimiter ; */
 
 -- HU017: Consultar cantidad total de artículos 
 Delimiter $$
@@ -311,14 +278,15 @@ BEGIN
 END $$
 Delimiter ;
  
+#cambiar
 -- HU018: Notificación de scraping 
 DELIMITER $$
-CREATE TRIGGER RegistrarYNotificacion
+CREATE TRIGGER RegistrarNotificacion
 AFTER INSERT ON Articulo
 FOR EACH ROW
 BEGIN
     DECLARE v_idResultado INT;
-    DECLARE v_idUsuario INT DEFAULT 1;  -- Usuario que ejecuta el scraping (ajústalo según tu app)
+    DECLARE v_idUsuario INT;
     DECLARE v_estado INT DEFAULT 1;     -- 1 = exitoso
 
     -- Crear un nuevo registro en la tabla Resultado
@@ -333,6 +301,7 @@ BEGIN
 END$$
 DELIMITER ;
 
+#repetido
 #HU022 Registrar Nuevo usuario en el sistema
 Delimiter $$
 Create Procedure RegistrarNuevoUsuario(IN xnombres VARCHAR(30), IN xapellidos VARCHAR(30), IN xcontrasena VARCHAR(30), IN xemail VARCHAR(30), OUT xmensaje VARCHAR(100))
@@ -347,7 +316,7 @@ Begin
 End $$
 Delimiter ;
 
--- HU022: Registrar un usuario nuevo
+/* -- HU022: Registrar un usuario nuevo
 DELIMITER $$
 CREATE PROCEDURE RegistrarNuevoUsuario(
     IN p_nombres VARCHAR(50),
@@ -372,7 +341,7 @@ BEGIN
         SELECT 'Usuario registrado exitosamente.' AS Mensaje, LAST_INSERT_ID() AS ID_Usuario;
     END IF;
 END$$
-DELIMITER ;
+DELIMITER ; */
 
 #HU023 Iniciar sesion en la plataforma
 Delimiter $$
@@ -385,11 +354,8 @@ Begin
 	End IF;
 End $$
 Delimiter ;
-SET @mensaje = '';
-CALL IniciarSesion("pepito@gmail.com", "Saitama", @mensaje);
-SELECT @mensaje;
 
--- HU023: Iniciar sesión en la plataforma  
+/* -- HU023: Iniciar sesión en la plataforma  
 DELIMITER $$
 CREATE PROCEDURE IniciarSesion(
     IN p_correo VARCHAR(50),
@@ -417,10 +383,10 @@ BEGIN
         SELECT 'Error: Correo o contraseña incorrectos.' AS Mensaje;
     END IF;
 END$$
-DELIMITER ;
+DELIMITER ; */
 
 #HU024 Cerrar sesion Simbolico en sql (FRONTEND BACKEND)
-DELIMITER $$
+/* DELIMITER $$
 
 CREATE PROCEDURE CerrarSesionUsuario(OUT mensaje VARCHAR(100))
 BEGIN
@@ -454,7 +420,24 @@ BEGIN
         SET MESSAGE_TEXT = 'Error: No hay una sesión activa para este usuario.';
     END IF;
 END$$
-DELIMITER ;
+DELIMITER ; 
+
+#HU024 Cerrar Sesion de Usuario 
+#Agregar nuevo tributo para el estado de inicio o cierre de sesion 
+ALTER TABLE Usuario ADD COLUMN sesion_activa BOOLEAN DEFAULT FALSE;
+
+Delimiter $$
+Create Procedure CerrarSesion(IN idx VARCHAR(30), OUT xmensaje VARCHAR(100))
+Begin
+	IF(Select 1 from Usuario where id = idx and sesion_activa = TRUE) THEN 
+		Update Usuario set sesion_activa = FALSE where id = idx;
+        set xmensaje = "Se ha cerrado la sesion";
+    ELSE 
+		Set xmensaje = "El usuario no se encuentra activo";
+	End IF;
+End $$
+Delimiter ;
+*/
 
 #HU025 Actualizar contraseña del usuario
 Delimiter $$
@@ -470,7 +453,7 @@ End $$
 
 Delimiter ;
 
--- HU025: Actualizar contraseña
+/* -- HU025: Actualizar contraseña
 DELIMITER $$
 CREATE PROCEDURE ActualizarContraseñaUsuario(
     IN p_correo VARCHAR(50),
@@ -497,7 +480,7 @@ BEGIN
         SET MESSAGE_TEXT = 'Error: La contraseña actual es incorrecta o el usuario no existe.';
     END IF;
 END$$
-DELIMITER ;
+DELIMITER ; */
 
 #HU027 Crear notificación para el usuario
 DELIMITER $$
@@ -510,22 +493,6 @@ BEGIN
 	INSERT INTO Notificacion (mensaje, tipo, leido, idResultadoFK) VALUES (mensajeP, tipoP, TRUE, idResultadoP);
 END $$
 DELIMITER ;
-
-#HU024 Cerrar Sesion de Usuario 
-#Agregar nuevo tributo para el estado de inicio o cierre de sesion 
-ALTER TABLE Usuario ADD COLUMN sesion_activa BOOLEAN DEFAULT FALSE;
-
-Delimiter $$
-Create Procedure CerrarSesion(IN idx VARCHAR(30), OUT xmensaje VARCHAR(100))
-Begin
-	IF(Select 1 from Usuario where id = idx and sesion_activa = TRUE) THEN 
-		Update Usuario set sesion_activa = FALSE where id = idx;
-        set xmensaje = "Se ha cerrado la sesion";
-    ELSE 
-		Set xmensaje = "El usuario no se encuentra activo";
-	End IF;
-End $$
-Delimiter ;
 
 #HU028 Consultar notificaciones del usuario
 DELIMITER $$
@@ -554,15 +521,12 @@ DELIMITER ;
 Delimiter $$
 Create Procedure VisualizarAlmacenados(OUT xmensaje varchar(100))
 Begin
-	
 	IF exists (SELECT COUNT(*) FROM Articulo) >= 1 then
-		select * from Articulo Order by Articulo.fecha desc;
+		select * from Articulo order by Articulo.fecha desc;
 	Else
-		Set xmensaje = "El estado introducido es invalido";
+		Set xmensaje = "No hay articulos almacenados...";
 	END IF;
-    
 End $$
-
 Delimiter ;
 
 #HU032 Visualizar los resultados de la extracción de artículos
@@ -575,9 +539,9 @@ Begin
     GROUP BY Resultado.id, Resultado.idUsuarioFK, Resultado.estado, Resultado.fechaExtraccion
     ORDER BY Resultado.fechaExtraccion DESC;
 End $$
-
 Delimiter ;
 
+#repetido
 #HU033 Mostrar cantidad de articulos
 Delimiter $$
 Create Procedure MostrarCantidadArticulos()
@@ -585,7 +549,6 @@ Begin
 	Select Count(*) FROM Articulos;
 End $$
 Delimiter ;
-
 call MostrarCantidadArticulos();
 
 #HU034 Copiar enlace de artículo
@@ -600,13 +563,13 @@ BEGIN
 END $$
 DELIMITER ;
 
-#HU034 Copiar el enlace del articulo
+/* #HU034 Copiar el enlace del articulo
 DELIMITER $$
 CREATE PROCEDURE ObtenerURL(IN idArticuloP INT, OUT urlP VARCHAR(50))
 BEGIN
     SELECT url INTO urlP FROM Fuente f WHERE idArticuloP = (SELECT idArticuloFK FROM ArticuloDetalle a WHERE f.id = a.idFuenteFK);
 END $$
-DELIMITER ;
+DELIMITER ; */
 
 #HU035 CambiarCorreoe
 DELIMITER $$
@@ -621,11 +584,11 @@ BEGIN
 END $$
 DELIMITER ;
 
+#revisar
 #HU036 Filtrar notificaciones por estado
 Delimiter $$
 Create Procedure EstadoNotificacion(IN xestado INT, OUT xmensaje varchar(100))
 Begin
-	
     IF exists (Select 1 from Resultado where estado = xestado) then
 		select Notificacion.*, Resultado.id , Resultado.estado, Resultado.fechaExtraccion, Resultado.idUsuarioFK from Notificacion
 		Inner Join Resultado ON Notificacion.idResultadoFK = Resultado.id
@@ -633,41 +596,38 @@ Begin
 	Else
 		Set xmensaje = "El estado introducido es invalido";
 	END IF;
-    
-    
 End $$
 
 Delimiter ;
 
+#revisar
 #HU037 Filtrar articulos por busqueda avanzada 
 Delimiter $$
 Create Procedure FiltroArticuloBusquedaAvanzada(IN fecha1 datetime, IN fecha2 datetime, IN cointitulo VARCHAR(100),IN claves VARCHAR(100), IN temabuscar VARCHAR(100), IN fuentes VARCHAR(100))
 Begin
-	
 	select Articulo.*, Fuente.nombre, Fuente.dominio from articulo
     #Unir con cadenas de 1 a 2 y de 2 a 3, articulo a articulodetalle y de articulodetalle a fuente
     Inner Join ArticuloDetalle on Articulo.id = ArticuloDetalle.idArticuloFK
     Inner Join Fuente on ArticuloDetalle.idFuenteFK = Fuente.id
     #Fecha
-	WHERE (fecha1 IS NULL OR fecha2 IS NULL OR Articulo.fecha BETWEEN fecha1 and fecha2)
+	WHERE (fecha1 IS NOT NULL AND fecha2 IS NOT NULL AND Articulo.fecha BETWEEN fecha1 and fecha2)
 		and ((cointitulo IS NULL OR Articulo.titular like CONCAT('%', cointitulo, '%')))
 		and (claves IS NULL OR Articulo.titular like CONCAT('%', claves, '%') or Articulo.subtitulo like CONCAT('%', claves, '%') or Articulo.cuerpo like CONCAT('%', claves, '%'))
 		and (temabuscar IS NULL OR Articulo.tema = temabuscar)
 		and (fuentes IS NULL OR Fuente.dominio = fuentes)
     Order by Articulo.fecha desc;
-    
 End $$
-
 Delimiter ;
 
+
 #HU038 Cambiar nombre y apellido
+DELIMITER $$
 CREATE PROCEDURE CambiarNombreApellidoUsuario(IN correo VARCHAR(50),IN nuevoNombre VARCHAR(50),IN nuevoApellido VARCHAR(50),OUT mensaje VARCHAR(100)
 )
 BEGIN
     Update Usuario SET nombre = nuevoNombre, apellido = nuevoApellido Where correo = correo;
     SET mensaje = "Nombre y apellido actualizados correctamente";
 END $$
-
 DELIMITER ;
 
 #HU039 Consultar fuentes ordenadas alfabéticamente
@@ -682,12 +642,10 @@ DELIMITER ;
 Delimiter $$
 Create Procedure FuentesAlfabeticamente()
 Begin
-    Select * from Fuente order by dominio desc;
+    Select * from Fuente order by nombre desc;
 End $$
 
 Delimiter ;
-
-call FuentesAlfabeticamente()
 
 #HU041 Eliminar datos asociados a un resultado
 DELIMITER $$
