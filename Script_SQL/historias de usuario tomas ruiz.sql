@@ -110,62 +110,42 @@ DELIMITER ;
 
 #HU002 Consultar Articulos
 Delimiter $$
-Create Procedure ConsultarArticulos()
+Create Procedure ConsultarArticulos(IN idUsuarioP)
 Begin
-	Select * from Articulo;
+	Select * from Articulo a
+    INNER JOIN Resultado r ON r.id = a.idResultadoFK
+    WHERE idUsuarioP = r.idUsuarioFK;
 End $$
 Delimiter ;
 
 
 #HU003 Mostrar articulos mas recientes
 Delimiter $$
-Create Procedure VisualizarArticulosRecientes()
+Create Procedure VisualizarArticulosRecientes(IN idUsuarioP INT)
 Begin
     select a.*, r.fechaExtraccion from Articulo a
     INNER JOIN Resultado r ON a.idResultadoFK = r.id
+    WHERE r.idUsuarioFK = idUsuarioP;
     ORDER BY r.fechaExtraccion DESC;
 End $$
 Delimiter ;
-
-/* -- HU003:  Mostrar artículos más recientes
-DELIMITER $$
-CREATE PROCEDURE mostrarArticulosRecientes()
-BEGIN
-    SELECT 
-        id,
-        tema,
-        titular,
-        subtitulo,
-        fecha
-    FROM Articulo
-    ORDER BY fecha DESC;
-END $$
-DELIMITER ; */
-
 
 
 -- HU004 Descartar articulos ---------------------------------------
 delimiter $$
 create procedure eliminarArticulo(
     in p_id_articulo int,
-    in p_confirmacion bool
 )
 begin
-    if not p_confirmacion then
-        select 'eliminacion cancelada por el usuario' as mensaje;
+    if exists (select 1 from articulo where id = p_id_articulo) then
+        delete from articulodetalle where idarticulofk = p_id_articulo;
+        delete from articulo where id = p_id_articulo;
+        select 'el articulo fue eliminado correctamente' as mensaje;
     else
-        if exists (select 1 from articulo where id = p_id_articulo) then
-            delete from articulodetalle where idarticulofk = p_id_articulo;
-            delete from articulo where id = p_id_articulo;
-            select 'el articulo fue eliminado correctamente' as mensaje;
-        else
-            select 'el articulo no existe' as mensaje;
-        end if;
+        select 'el articulo no existe' as mensaje;
     end if;
 end$$
 delimiter ;
-call eliminarArticulo(4, true);
-select * from articulo;
 
 -- HU005 Asignar articulos como favoritos-----------------------
 delimiter $$
@@ -185,20 +165,24 @@ begin
 end$$
 delimiter ;
 
-
 #HU006 Filtrar articulos por rango de fechas
 Delimiter $$
-Create Procedure FiltroArticulosRangoFechas(IN fecha1 datetime, IN fecha2 datetime)
+Create Procedure FiltroArticulosRangoFechas(IN idUsuarioP INT, IN fecha1 datetime, IN fecha2 datetime)
 Begin
-	select * from Articulo where fecha between fecha1 and fecha2 order by fecha asc;
+	select * from Articulo a
+    inner join Resultado r on r.id = a.idResultadoFK
+    where (fecha between fecha1 and fecha2) and (r.idUsuarioFK = idUsuarioP)
+    order by fecha asc;
 End $$
 Delimiter ;
 
 #HU007 Filtrar Articulos por coincidencias en titulo
 Delimiter $$
-Create Procedure FiltroArticuloCoincidenciasTitulo(IN palabras VARCHAR(50))
+Create Procedure FiltroArticuloCoincidenciasTitulo(IN idUsuarioP INT, IN palabras VARCHAR(50))
 Begin
-	select * from Articulo where titular like CONCAT('%', palabras, '%');
+	select a.* from Articulo a
+    INNER JOIN Resultado r ON r.id = a.idResultadoFK
+    where titular like CONCAT('%', palabras, '%') and r.idUsuarioFK = idUsuarioP;
 End $$
 Delimiter ;
 
@@ -206,6 +190,7 @@ Delimiter ;
 -- HU008: Filtrar artículos por palabras clave
 DELIMITER $$
 CREATE PROCEDURE FiltrarArticulosPorPalabraClave (
+    IN idUsuarioP INT,
     IN palabraClave VARCHAR(100)
 )
 BEGIN
@@ -221,157 +206,43 @@ BEGIN
         f.tipo AS tipoFuente,
         f.nombre AS nombreFuente
     FROM Articulo a
+    INNER JOIN Resultado r ON r.id = a.idResultadoFK
     INNER JOIN ArticuloDetalle ad ON a.id = ad.idArticuloFK
     INNER JOIN Fuente f ON ad.idFuenteFK = f.id
     WHERE 
+    (
         a.titular LIKE CONCAT('%', palabraClave, '%')
         OR a.subtitulo LIKE CONCAT('%', palabraClave, '%')
         OR a.cuerpo LIKE CONCAT('%', palabraClave, '%')
+    )
+        AND (r.idUsuarioFK = idUsuarioP)
     ORDER BY a.fecha DESC;
 END $$
 DELIMITER ;
 
 #HU009 Filtrar Articulos por tema
 Delimiter $$
-Create Procedure FiltroArticuloTema(IN temabuscar VARCHAR(100))
+Create Procedure FiltroArticuloTema(IN idUsuarioP INT, IN temabuscar VARCHAR(100))
 Begin
-	select * from Articulo where tema = temabuscar;
+	select * from Articulo
+    INNER JOIN Resultado r ON r.id = a.idResultadoFK
+    where tema = temabuscar and r.idUsuarioFK = idUsuarioP;
 End $$
 Delimiter ;
 
 
 #HU010 Filtrar Articulos la fuente correspondiente
 Delimiter $$
-Create Procedure FiltroArticuloFuente(IN fuentes VARCHAR(100))
+Create Procedure FiltroArticuloFuente(IN idUsuarioP INT, IN fuentes VARCHAR(100))
 Begin
 	select * from Articulo a
     Inner Join ArticuloDetalle ad on a.id = ad.idArticuloFK
     Inner Join Fuente f on ad.idFuenteFK = f.id
-    Where f.nombre = fuentes
+    INNER JOIN Resultado r ON r.id = a.idResultadoFK
+    Where f.nombre = fuentes AND r.idUsuarioFK = idUsuarioP
     Order by a.fecha desc;
 End $$
 
--- HU011: Evitar articulos duplicados
-DELIMITER $$
-CREATE PROCEDURE RegistrarFuenteSinDuplicados(
-    IN p_url VARCHAR(50),
-    IN p_tipo VARCHAR(50),
-    IN p_nombre VARCHAR(50)
-)
-BEGIN
-    DECLARE existe INT;
-
-    SELECT COUNT(*) INTO existe
-    FROM Fuente
-    WHERE nombre in (p_nombre) AND url in (p_url);
-
-    IF existe > 0 THEN
-        SELECT CONCAT('La fuente "', p_nombre, '" con URL "', p_url, '" ya está registrada.') AS mensaje;
-    ELSE
-        INSERT INTO Fuente (url, tipo, nombre)
-        VALUES (p_url, p_tipo, p_nombre);
-
-        SELECT CONCAT('Fuente "', p_nombre, '" registrada exitosamente.') AS mensaje;
-    END IF;
-END$$
-DELIMITER ;
-
--- HU012 Actualizar articulo -------------------------------------------------
-delimiter $$
-create procedure actualizar_articulo(
-    in p_url varchar(50),
-    in p_titular varchar(100),
-    in p_subtitulo varchar(100),
-    in p_cuerpo varchar(100),
-    in p_fecha datetime,
-    in p_id_resultado int
-)
-begin
-    declare v_id_articulo int;
-
-    select a.id as id_articulo into v_id_articulo
-    from articulo a
-    join articulodetalle ad on ad.idarticulofk = a.id
-    join fuente f on f.id = ad.idfuentefk
-    where f.url = p_url
-    limit 1;
-
-    if v_id_articulo is not null then
-        if (select a.titular as titular from articulo a where a.id = v_id_articulo) <> p_titular
-           or (select a.subtitulo as subtitulo from articulo a where a.id = v_id_articulo) <> p_subtitulo
-           or (select a.cuerpo as cuerpo from articulo a where a.id = v_id_articulo) <> p_cuerpo
-        then
-            update articulo
-            set titular = p_titular,
-                subtitulo = p_subtitulo,
-                cuerpo = p_cuerpo,
-                fecha = p_fecha
-            where id = v_id_articulo;
-
-            insert into notificacion(mensaje, tipo, leido, idresultadofk)
-            values('art_actualizado', 1, false, p_id_resultado);
-        end if;
-    end if;
-end$$
-delimiter ;
-call actualizar_articulo(
-    'www.portafolio.co',                          -- url de la fuente
-    'El dólar sigue subiendo y rompe récord',      -- nuevo titular
-    'Impacto en la economía colombiana',          -- nuevo subtitulo
-    'El precio del dólar alcanzó 4.250 pesos...', -- nuevo cuerpo
-    now(),                                        -- fecha de actualización
-    2                                             -- idResultadoFK
-);
-
--- HU013 Asignar Fuentes Iniciales ----------------------------------------------------------
-create table FuentesIniciales(
-    id int primary key auto_increment not null,
-    idFuenteFK int not null,
-    foreign key (idFuenteFK) references Fuente(id)
-);
-
-delimiter $$
-create procedure registrar_fuente_inicial(
-    in p_id_fuente int
-)
-begin
-    if exists (select 1 from Fuente where id = p_id_fuente) then
-        insert ignore into FuentesIniciales(idFuenteFK)
-        values(p_id_fuente);
-
-        select concat('Fuente con id ', p_id_fuente, ' registrada como fuente inicial') as mensaje;
-    else
-        select concat('Error: Fuente con id ', p_id_fuente, ' no existe') as mensaje;
-    end if;
-end$$
-delimiter ;
-call registrar_fuente_inicial(2);
-
--- HU014 Conservar articulo -------------------------------------------------
-delimiter $$
-create procedure conservarArticulo(
-    in p_id_articulo int,
-    in p_conservar boolean
-)
-begin
-    declare v_titular varchar(100);
-
-    if exists (select 1 from articulo where id = p_id_articulo) then
-        select titular into v_titular from articulo where id = p_id_articulo;
-
-        if p_conservar then
-			rollback;
-        else
-            delete from articulodetalle where idarticulofk = p_id_articulo;
-            delete from articulo where id = p_id_articulo;
-        end if;
-    else
-        select 'el articulo no existe' as mensaje;
-    end if;
-end$$
-delimiter ;
-call conservarArticulo(8, false);
-select * from articulo;
 -- HU011: Evitar articulos duplicados
 DELIMITER $$
 CREATE TRIGGER EvitarArticulosDuplicados
@@ -388,6 +259,40 @@ BEGIN
     END IF;
 END$$
 DELIMITER ;
+
+-- HU012 Actualizar articulo -------------------------------------------------
+delimiter $$
+create procedure actualizar_articulo(
+    in p_url varchar(50),
+    in p_titular varchar(100),
+    in p_subtitulo varchar(100),
+    in p_cuerpo varchar(100),
+    in p_fecha datetime,
+    in p_id_resultado int,
+    in p_id_articulo int
+)
+begin
+    update Articulo
+    set 
+    titular = p_titular,
+    subtitulo = p_subtitulo,
+    cuerpo = p_cuerpo,
+    fecha = p_fecha
+    where id = p_id_articulo;
+    
+    update Fuente f
+    inner join ArticuloDetalle ad on ad.idFuenteFK = f.id
+    inner join Articulo a on a.id = ad.idArticuloFK
+    set f.url = p_url
+    where a.id = p_id_articulo;
+end$$
+delimiter ;
+
+-- HU013 Asignar Fuentes Iniciales ----------------------------------------------------------
+#esto ocurre en el webcrawler
+
+-- HU014 Conservar articulo -------------------------------------------------
+#esto ocurre en la interfaz
 
 #HU015 Mostrar cantidad fuentes
 DELIMITER $$
@@ -444,47 +349,15 @@ DELIMITER ;
 
 -- HU019 Generar notificaciones ------------------------------------
 delimiter $$
-create procedure registrar_articulo( ##Genera notificacion cuando registra un articulo o genera error 
-    in p_tema varchar(50),
-    in p_titular varchar(100),
-    in p_subtitulo varchar(100),
-    in p_cuerpo varchar(100),
-    in p_fecha datetime,
-    in p_id_resultado int
-)
-begin
-    declare exit handler for sqlexception
-    begin
-        insert into notificacion(mensaje, tipo, leido, idresultadofk)
-        values('art_err', 2, false, p_id_resultado);
-    end;
-
-    insert into articulo(tema, titular, subtitulo, cuerpo, fecha, idresultadofk, favorito)
-    values(p_tema, p_titular, p_subtitulo, p_cuerpo, p_fecha, p_id_resultado, false);
-
-    insert into notificacion(mensaje, tipo, leido, idresultadofk)
-    values('art_ok', 1, false, p_id_resultado);
-end$$
-delimiter ;
-
-delimiter $$
-create procedure notificar_fin_busqueda( ##Genera notificacion cuando termina la busqueda o genera error
+create procedure GenerarNotificacion(
     in p_id_resultado int,
-    in p_exito bool
+    in p_mensaje varchar(50),
+    in p_tipo int,
 )
 begin
-    if p_exito then
-        insert into notificacion(mensaje, tipo, leido, idresultadofk)
-        values('bus_ok', 3, false, p_id_resultado);
-    else
-        insert into notificacion(mensaje, tipo, leido, idresultadofk)
-        values('bus_err', 4, false, p_id_resultado);
-    end if;
+    insert into Notificacion (mensaje, tipo, leido, idResultadoFK) Values(p_mensaje, p_tipo, 0, p_id_resultado)
 end$$
 delimiter ;
-call registrar_articulo('politica', 'nuevo debate', 'senado', 'texto', now(), 4);
-call notificar_fin_busqueda(5, true);
-call notificar_fin_busqueda(5, false);
 
 -- HU020 Actualizar Resultado ------------------------------------------------------------
 delimiter $$
@@ -503,35 +376,21 @@ begin
     end if;
 end$$
 delimiter ;
-call actualizar_estado_resultado(3, 1);
-select * from resultado;
 
--- HU021 Eliminar Registros ------------------------------------------------ (problema de safeKEY)
+-- HU021 Eliminar Registros ------------------------------------------------ 
 delimiter $$
-create procedure eliminar_resultado_antiguo(
-    in p_id_resultado int
+create procedure eliminar_resultado(
 )
 begin
     if exists (select 1 from Resultado where id = p_id_resultado) then
-        delete from ArticuloDetalle
-        where idArticuloFK in (select id from Articulo where idResultadoFK = p_id_resultado);
-
-        delete from Articulo
-        where idResultadoFK = p_id_resultado;
-
-        delete from Notificacion
-        where idResultadoFK = p_id_resultado;
-
         delete from Resultado
         where id = p_id_resultado;
-
         select concat('Resultado con id ', p_id_resultado, ' y sus registros asociados han sido eliminados') as mensaje;
     else
         select concat('Error: Resultado con id ', p_id_resultado, ' no existe') as mensaje;
     end if;
 end$$
 delimiter ;
-call eliminar_resultado_antiguo(3);
 
 #HU022 Registrar Nuevo usuario en el sistema
 Delimiter $$
@@ -560,180 +419,31 @@ Begin
 End $$
 Delimiter ;
 
-/* -- HU023: Iniciar sesión en la plataforma  
-DELIMITER $$
-CREATE PROCEDURE IniciarSesion(
-    IN p_correo VARCHAR(50),
-    IN p_contraseña VARCHAR(20)
-)
-BEGIN
-    DECLARE v_idUsuario INT;
-    DECLARE v_estado INT;
+ #HU024 Cerrar sesion Simbolico en sql (FRONTEND BACKEND)
+# esto ocurre en la interfaz
 
-    SELECT id INTO v_idUsuario
-    FROM Usuario
-    WHERE correo in (p_correo) AND contraseña in (p_contraseña)
-    LIMIT 1;
-
-    IF v_idUsuario IS NOT NULL THEN
-        SET v_estado = 1;
-        INSERT INTO Resultado (idUsuarioFK, estado, fechaExtraccion)
-        VALUES (v_idUsuario, v_estado, NOW());
-        SELECT 'Inicio de sesión exitoso.' AS Mensaje, v_idUsuario AS ID_Usuario;
-
-    ELSE
-        SET v_estado = 0;
-        INSERT INTO Resultado (idUsuarioFK, estado, fechaExtraccion)
-        VALUES (1, v_estado, NOW());
-        SELECT 'Error: Correo o contraseña incorrectos.' AS Mensaje;
-    END IF;
-END$$
-DELIMITER ; */
-
-/* #HU024 Cerrar sesion Simbolico en sql (FRONTEND BACKEND)
- DELIMITER $$
-CREATE PROCEDURE CerrarSesionUsuario(OUT mensaje VARCHAR(100))
-BEGIN
-    SET mensaje = "Sesión cerrada correctamente";
-END $$
-DELIMITER ; */
-
-/*
--- HU024: Cerrar sesión
-DELIMITER $$
-
-#HU024 Cerrar Sesion de Usuario 
-#Agregar nuevo tributo para el estado de inicio o cierre de sesion 
-ALTER TABLE Usuario ADD COLUMN sesion_activa BOOLEAN DEFAULT FALSE;
-
-Delimiter $$
-Create Procedure CerrarSesion(IN idx VARCHAR(30), OUT xmensaje VARCHAR(100))
-Begin
-	IF(Select 1 from Usuario where id = idx and sesion_activa = TRUE) THEN 
-		Update Usuario set sesion_activa = FALSE where id = idx;
-        set xmensaje = "Se ha cerrado la sesion";
-    ELSE 
-		Set xmensaje = "El usuario no se encuentra activo";
-	End IF;
-End $$
-Delimiter ;
 
 #HU025 Actualizar contraseña del usuario
 Delimiter $$
 Create Procedure ActualizarContrasena(IN xcorreo VARCHAR(50),IN xcontrasena VARCHAR(30),IN xnuevacontrasena VARCHAR(30), OUT xmensaje VARCHAR(200))
 Begin
 	IF EXISTS(Select 1 from Usuario where correo = xcorreo and contraseña = xcontrasena) THEN 
-		Set xmensaje = "Informacion Correcta a";
         update Usuario set Usuario.contrasena = xnuevacontrasena where correo = xcorreo;
+		Set xmensaje = "Se actualizo la contraseña correctamente";
     ELSE 
 		Set xmensaje = "La contrasena es incorrecta";
 	End IF;
 End $$
-
 Delimiter ;
 
 -- HU026 Eliminar Usuario---------------------------------------------- 
 delimiter $$
-create procedure eliminarArticulosUsuario(in p_id_usuario int)
+create procedure EliminarUsuario(in p_id_usuario int)
 begin
-    declare v_existe int;
-    declare v_cant int;
-
-    select count(*) into v_existe
-    from articulo a
-    inner join resultado r on a.idresultadofk = r.id
-    where r.idusuariofk = p_id_usuario;
-
-    if v_existe = 0 then
-        signal sqlstate '45000'
-        set message_text = 'no existen articulos para este usuario.';
-    else
-        delete ad from articulodetalle ad
-        inner join articulo a on ad.idarticulofk = a.id
-        inner join resultado r on a.idresultadofk = r.id
-        where r.idusuariofk = p_id_usuario;
-
-        delete a from articulo a
-        inner join resultado r on a.idresultadofk = r.id
-        where r.idusuariofk = p_id_usuario;
-
-        select v_existe as articulos_eliminados;
-    end if;
+    delete from Usuario where id = p_id_usuario;
 end $$
 delimiter ;
-call eliminarArticulosUsuario(2);
 
-#HU027 Crear notificación para el usuario
-DELIMITER $$
-CREATE PROCEDURE CrearNotificacion(
-	IN idResultadoP INT,
-    IN mensajeP VARCHAR(11),
-    IN tipoP INT
-)
-BEGIN
-    DECLARE v_sesionActiva INT;
-
-    SELECT COUNT(*) INTO v_sesionActiva
-    FROM Resultado
-    WHERE idUsuarioFK in (p_idUsuario) AND estado = 1;
-
-    IF v_sesionActiva > 0 THEN
-        INSERT INTO Resultado (idUsuarioFK, estado, fechaExtraccion)
-        VALUES (p_idUsuario, 2, NOW());
-
-        SELECT 'Sesión cerrada correctamente. Redirigiendo a la pantalla principal...' AS Mensaje;
-
-    ELSE
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Error: No hay una sesión activa para este usuario.';
-    END IF;
-END$$
-DELIMITER ; 
-
-*/
-
-#HU025 Actualizar contraseña del usuario
-Delimiter $$
-Create Procedure ActualizarContrasena(IN xcorreo VARCHAR(50),IN xcontrasena VARCHAR(30),IN xnuevacontrasena VARCHAR(30), OUT xmensaje VARCHAR(200))
-Begin
-	IF EXISTS(Select 1 from Usuario where correo = xcorreo and contraseña = xcontrasena) THEN 
-		Set xmensaje = "Informacion Correcta";
-        update Usuario set Usuario.contrasena = xnuevacontrasena where correo = xcorreo;
-    ELSE 
-		Set xmensaje = "La contrasena es incorrecta";
-	End IF;
-End $$
-
-Delimiter ;
-
-/* -- HU025: Actualizar contraseña
-DELIMITER $$
-CREATE PROCEDURE ActualizarContraseñaUsuario(
-    IN p_correo VARCHAR(50),
-    IN p_contraseñaActual VARCHAR(20),
-    IN p_nuevaContraseña VARCHAR(20)
-)
-BEGIN
-    DECLARE v_idUsuario INT;
-
-    SELECT id INTO v_idUsuario
-    FROM Usuario
-    WHERE correo in (p_correo) AND contraseña in (p_contraseñaActual)
-    LIMIT 1;
-
-    IF v_idUsuario IS NOT NULL THEN
-        UPDATE Usuario
-        SET contraseña = p_nuevaContraseña
-        WHERE id in (v_idUsuario);
-
-        SELECT 'Contraseña actualizada exitosamente.' AS Mensaje;
-
-    ELSE
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Error: La contraseña actual es incorrecta o el usuario no existe.';
-    END IF;
-END$$
-DELIMITER ; */
 
 #HU027 Crear notificación para el usuario
 DELIMITER $$
@@ -770,28 +480,31 @@ BEGIN
 END $$
 DELIMITER ;
 
+#HU029 Marcar notificación como leída/no leída
+DELIMITER $$
+CREATE PROCEDURE AsignarLecturaNotificacion(
+    IN idNotificacionP INT,
+    IN leidaP BOOL,
+)
+BEGIN
+    UPDATE Notificacion SET leida = leidaP WHERE id = idNotificacionP;
+END $$
+DELIMITER ;
+
 -- HU030 Eliminar notificacion --------------------------------------------
 delimiter $$
 create procedure eliminar_notificacion(
     in p_id_notificacion int,
-    in p_confirmacion bool
 )
 begin
-    if not p_confirmacion then
-        select 'eliminacion cancelada por el usuario' as mensaje;
+    if exists (select 1 from notificacion where id = p_id_notificacion) then
+        delete from notificacion where id = p_id_notificacion;
+        select 'la notificacion fue eliminada correctamente' as mensaje;
     else
-        if exists (select 1 from notificacion where id = p_id_notificacion) then
-            delete from notificacion where id = p_id_notificacion;
-            select 'la notificacion fue eliminada correctamente' as mensaje;
-        else
-            select 'la notificacion no existe' as mensaje;
-        end if;
+        select 'la notificacion no existe' as mensaje;
     end if;
 end$$
 delimiter ;
-call eliminar_notificacion(23, true);
-call eliminar_notificacion(10, false);
-select * from notificacion;
 
 #HU031 Visualizar articulos almacenados
 DELIMITER $$
@@ -831,7 +544,6 @@ Begin
 	Select Count(*) FROM Articulos;
 End $$
 Delimiter ;
-call MostrarCantidadArticulos();
 
 #HU034 Copiar enlace de artículo
 DELIMITER $$
@@ -843,14 +555,6 @@ BEGIN
     WHERE idArticuloP = (SELECT idArticuloFK FROM ArticuloDetalle a WHERE f.id = a.idFuenteFK);
 END $$
 DELIMITER ;
-
-/* #HU034 Copiar el enlace del articulo
-DELIMITER $$
-CREATE PROCEDURE ObtenerURL(IN idArticuloP INT, OUT urlP VARCHAR(50))
-BEGIN
-    SELECT url INTO urlP FROM Fuente f WHERE idArticuloP = (SELECT idArticuloFK FROM ArticuloDetalle a WHERE f.id = a.idFuenteFK);
-END $$
-DELIMITER ; */
 
 #HU035 CambiarCorreo
 DELIMITER $$
