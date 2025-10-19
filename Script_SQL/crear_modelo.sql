@@ -38,15 +38,15 @@ create table Articulo(
 
 create table Notificacion(
     id int primary key auto_increment not null,
-	mensaje varchar(11) not null,
+	mensaje varchar(50) not null,
     tipo int not null, 
     idResultadoFK int not null,
 	foreign key (idResultadoFK) references Resultado(id)
 );
 
 create table ArticuloDetalle(
-    idArticuloFK int unique,
-    idFuenteFK int unique,
+    idArticuloFK int unique not null,
+    idFuenteFK int unique not null,
     foreign key (idArticuloFK) references Articulo(id),
 	foreign key (idFuenteFK) references Fuente(id)
 );
