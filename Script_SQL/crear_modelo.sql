@@ -1,3 +1,4 @@
+DROP DATABASE WebCrawler;
 create database WebCrawler;
 use WebCrawler;
 
@@ -11,9 +12,9 @@ create table Usuario(
 
 create table Fuente(
     id int primary key auto_increment not null,
-    url varchar(50) not null unique, 
+    url varchar(500) not null, 
     tipo varchar(50),
-    nombre  varchar(50) not null unique
+    nombre  varchar(500) not null
 );
 
 create table Resultado(
@@ -26,10 +27,10 @@ create table Resultado(
 
 create table Articulo(
     id int primary key auto_increment not null,
-    tema varchar(50),
-    titular varchar(100),
-    subtitulo varchar(100),
-    cuerpo varchar(100),
+    tema varchar(500),
+    titular varchar(500),
+    subtitulo varchar(500),
+    cuerpo text,
     fecha datetime,
     idResultadoFK int not null,
     favorito bool not null,

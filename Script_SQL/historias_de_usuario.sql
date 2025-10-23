@@ -1,94 +1,27 @@
 USE WebCrawler;
 
--- 1. Insert users
-INSERT INTO Usuario (nombres, apellidos, contraseña, correo) VALUES
-('Juan', 'Pérez', 'pass123', 'juan.perez@email.com'),
-('María', 'Gómez', 'securepass', 'maria.g@email.com'),
-('Carlos', 'López', 'clave123', 'carlos.lopez@email.com'),
-('Ana', 'Rodríguez', 'ana2024', 'ana.rod@email.com'),
-('Pedro', 'Martínez', 'pedro123', 'pedro.m@email.com');
-
--- 2. Insert sources
-INSERT INTO Fuente (url, tipo, nombre) VALUES
-('https://news.example.com/rss', 'RSS', 'Example News'),
-('https://techblog.com/feed', 'RSS', 'Tech Blog'),
-('https://sportsnews.com/api', 'API', 'Sports News'),
-('https://politics.com/rss', 'RSS', 'Politics Daily'),
-('https://health.org/feed', 'RSS', 'Health Updates'),
-('https://economy.com/api', 'API', 'Economy Watch'),
-('https://science.org/rss', 'RSS', 'Science Journal');
-
--- 3. Insert results
-INSERT INTO Resultado (idUsuarioFK, estado, fechaExtraccion) VALUES
-(1, 1, '2024-01-15 10:30:00'),
-(1, 2, '2024-01-16 14:45:00'),
-(2, 1, '2024-01-17 09:15:00'),
-(3, 3, '2024-01-18 16:20:00'),
-(4, 1, '2024-01-19 11:00:00'),
-(5, 2, '2024-01-20 13:30:00'),
-(2, 1, '2024-01-21 08:45:00');
-
--- 4. Insert articles
-INSERT INTO Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK, favorito) VALUES
-('Tecnología', 'Nueva IA Revoluciona Medicina', 'Avances en diagnóstico con IA', 'Sistema de IA detecta enfermedades con 95% de precisión en estudios recientes.', '2024-01-15 10:00:00', 1, true),
-('Deportes', 'Equipo Local Gana Campeonato', 'Victoria histórica en tiempo extra', 'Equipo local gana título nacional después de 20 años en partido emocionante.', '2024-01-16 14:30:00', 2, false),
-('Política', 'Nueva Ley de Datos Aprobada', 'Regulación para empresas tech', 'Congreso aprueba legislación que protege datos personales de ciudadanos.', '2024-01-17 09:00:00', 3, true),
-('Salud', 'Nuevo Tratamiento para Diabetes', 'Estudio muestra resultados prometedores', 'Tratamiento innovador podría cambiar vida de millones de pacientes diabéticos.', '2024-01-18 16:00:00', 4, false),
-('Economía', 'Mercado Alcanza Máximo Histórico', 'Inversores optimistas', 'Índices bursátiles rompen récords por crecimiento económico sostenido.', '2024-01-19 10:45:00', 5, true),
-('Ciencia', 'Misión Encuentra Agua en Marte', 'Hallazgo aumenta posibilidad de vida', 'Rover confirma agua líquida bajo superficie marciana en descubrimiento clave.', '2024-01-20 13:15:00', 6, false),
-('Tech', 'Nuevo Smartphone Plegable', 'Innovación en diseño móvil', 'Compañía presenta dispositivo plegable con características revolucionarias.', '2024-01-21 08:30:00', 7, true);
-
--- 5. Insert notifications
-INSERT INTO Notificacion (mensaje, tipo, leido, idResultadoFK) VALUES
-('Éxito', 1, true, 1),
-('Error', 2, false, 2),
-('Completado', 1, true, 3),
-('Límite', 3, false, 4),
-('Éxito', 1, true, 5),
-('Error conex', 2, true, 6),
-('Finalizado', 1, false, 7);
-
--- 6. Finally, insert article details - use the actual IDs that were generated
-INSERT INTO ArticuloDetalle (idArticuloFK, idFuenteFK) VALUES
-(1, 1),  -- First article with first source
-(2, 2),  -- Second article with second source
-(3, 3),  -- Third article with third source
-(4, 4),  -- Fourth article with fourth source
-(5, 5),  -- Fifth article with fifth source
-(6, 6),  -- Sixth article with sixth source
-(7, 7);  -- Seventh article with seventh source
-
+INSERT INTO Usuario (nombres, apellidos, contraseña, correo)
+VALUES ("tomas", "ruiz", "1234", "tomasa.ruiz@urosario.edu.co");
 
 -- HU001: Registar Articulo 
 DELIMITER $$
 CREATE PROCEDURE RegistrarArticulo(
-    IN p_tema VARCHAR(50),
-    IN p_titular VARCHAR(100),
-    IN p_subtitulo VARCHAR(100),
-    IN p_cuerpo VARCHAR(100),
+    IN p_tema VARCHAR(500),
+    IN p_titular VARCHAR(500),
+    IN p_subtitulo VARCHAR(500),
+    IN p_cuerpo TEXT,
     IN p_fecha DATETIME,
     IN p_idResultadoFK INT,
     IN p_favorito BOOL,
-    IN p_url VARCHAR(50),
+    IN p_url VARCHAR(500),
     IN p_tipo VARCHAR(50),
-    IN p_nombreFuente VARCHAR(50)
+    IN p_nombreFuente VARCHAR(500)
 )
 BEGIN
     DECLARE v_idFuente INT;
     DECLARE v_idArticulo INT;
 
-    SELECT id INTO v_idFuente
-    FROM Fuente
-    WHERE url = p_url AND nombre = p_nombreFuente
-    LIMIT 1;
-
-    IF v_idFuente IS NULL THEN
-        INSERT INTO Fuente (url, tipo, nombre)
-        VALUES (p_url, p_tipo, p_nombreFuente);
-        SET v_idFuente = LAST_INSERT_ID();
-    END IF;
-
-    INSERT INTO Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK, favorito)
+	INSERT INTO Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK, favorito)
     VALUES (
         IFNULL(p_tema, ''),
         IFNULL(p_titular, ''),
@@ -98,19 +31,28 @@ BEGIN
         p_idResultadoFK,
         p_favorito
     );
-
     SET v_idArticulo = LAST_INSERT_ID();
+	
+    SELECT id INTO v_idFuente
+    FROM Fuente
+    WHERE url = p_url AND nombre = p_nombreFuente
+    LIMIT 1;
 
-    INSERT INTO ArticuloDetalle (idArticuloFK, idFuenteFK)
-    VALUES (v_idArticulo, v_idFuente);
-
+    IF v_idFuente IS NULL THEN
+        INSERT INTO Fuente (url, tipo, nombre)
+        VALUES (p_url, p_tipo, p_nombreFuente);
+        SET v_idFuente = LAST_INSERT_ID();
+        
+        INSERT INTO ArticuloDetalle (idArticuloFK, idFuenteFK)
+		VALUES (v_idArticulo, v_idFuente);
+    END IF;
 END$$
 DELIMITER ;
 
 
 #HU002 Consultar Articulos
 Delimiter $$
-Create Procedure ConsultarArticulos(IN idUsuarioP)
+Create Procedure ConsultarArticulos(IN idUsuarioP INT)
 Begin
 	Select * from Articulo a
     INNER JOIN Resultado r ON r.id = a.idResultadoFK
@@ -250,26 +192,27 @@ CREATE TRIGGER EvitarArticulosDuplicados
 BEFORE INSERT ON Articulo
 FOR EACH ROW
 BEGIN 
-    IF EXISTS(SELECT * FROM Articulo a
-                INNER JOIN Resultado r ON r.id = a.idResultadoFK
-                WHERE NEW.titular = titular 
-                AND NEW.subtitulo = subtitulo
-                AND NEW.cuerpo = cuerpo
-                AND NEW.fecha = fecha
-                AND r.idUsuarioFK in (SELECT idUsuarioFK FROM Resultado WHERE id = NEW.idResultadoFK)) THEN
-        SIGNAL SQLSTATE '45000'
+	DECLARE v_url VARCHAR(500);
+    DECLARE V_idArticulo INT;
+    IF EXISTS(
+		SELECT * FROM Articulo a
+        WHERE NEW.titular = titular 
+		AND NEW.subtitulo = subtitulo
+	) THEN
+		SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Articulo duplicado, inserción cancelada';
     END IF;
 END$$
 DELIMITER ;
+-- SHOW TRIGGERS;
 
 -- HU012 Actualizar articulo -------------------------------------------------
 delimiter $$
 create procedure actualizar_articulo(
-    in p_url varchar(50),
-    in p_titular varchar(100),
-    in p_subtitulo varchar(100),
-    in p_cuerpo varchar(100),
+    in p_url varchar(500),
+    in p_titular varchar(500),
+    in p_subtitulo varchar(500),
+    in p_cuerpo text,
     in p_fecha datetime,
     in p_id_resultado int,
     in p_id_articulo int
@@ -315,7 +258,7 @@ CREATE TRIGGER EliminarDatosAsociadosUsuario
 BEFORE DELETE ON Usuario
 FOR EACH ROW
 BEGIN
-    DELETE FROM Resultado r WHERE r.idUsuarioFK = OLD.id;
+    DELETE FROM Resultado WHERE r.idUsuarioFK = OLD.id;
 END $$
 DELIMITER ;
 
@@ -603,7 +546,7 @@ BEGIN
 		and (claves IS NULL OR Articulo.titular like CONCAT('%', claves, '%') or Articulo.subtitulo like CONCAT('%', claves, '%') or Articulo.cuerpo like CONCAT('%', claves, '%'))
 		and (temabuscar IS NULL OR Articulo.tema = temabuscar)
 		and (fuentes IS NULL OR Fuente.dominio = fuentes)
-        and idUsuarioP = r.idUsuarioFK;
+        and idUsuarioP = r.idUsuarioFK
     Order by Articulo.fecha desc;
 END $$
 DELIMITER ;
@@ -648,12 +591,13 @@ DELIMITER ;
 DELIMITER $$
 Create Procedure FuentesAlfabeticamente(
     in idUsuarioP int
+)
 Begin
     Select * from Fuente f
     inner join ArticuloDetalle ad on ad.idFuenteFK = f.id
     inner join Articulo a on a.id = ad.idArticuloFK
     inner join Resultado r on r.id = a.idResultadoFK
-    where r.idUsuarioFK = idUsuarioP;
+    where r.idUsuarioFK = idUsuarioP
     order by nombre desc;
 End $$
 DELIMITER ;
@@ -678,7 +622,7 @@ CREATE TRIGGER EliminarDatosAsociadosResultado
 BEFORE DELETE ON Resultado
 FOR EACH ROW
 BEGIN
-	DELETE FROM Notificacion n WHERE n.idResultadoFK = OLD.id;
-    DELETE FROM Articulo a WHERE a.idResultadoFK = OLD.id;
+	DELETE FROM Notificacion WHERE idResultadoFK = OLD.id;
+    DELETE FROM Articulo WHERE idResultadoFK = OLD.id;
 END $$
 DELIMITER ;

@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Text;
 using HtmlAgilityPack;
 
 class Parser
@@ -6,23 +8,17 @@ class Parser
     {
         _client = new HttpClient();
         _currentDoc = new HtmlDocument();
-        _repository = new Repository("server=localhost;user=root;database=world;port=3306;");
-        var successfulConnection = _repository.ConnectToServer();
-        if (!successfulConnection)
-        {
-            Console.WriteLine("Database connection unsuccessful...");
-            return;
-        }
-        else
-        {
-            Console.WriteLine("connected to database successfully.");
-        }
+    }
+    public void SetStartUrl(string startUrl)
+    {
+        _startUrl = new Uri(startUrl);
     }
 
-    public async Task<bool> loadHTML(Uri url)
+    public async Task<bool> LoadArticleHTML(Uri url)
     {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("Parsing: " + url);
+        Console.ForegroundColor = ConsoleColor.DarkBlue;
+        Console.Write("Parsing: " + url);
+        Console.ForegroundColor = ConsoleColor.White;
         var htmlStr = "";
 
         try
@@ -32,30 +28,87 @@ class Parser
         }
         catch (System.InvalidOperationException)
         {
-            // Console.ForegroundColor = ConsoleColor.Red;
-            // Console.WriteLine("INVALID URL: " + url);
-            // Console.ForegroundColor = ConsoleColor.White;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("(INVALID URL)");
+            Console.ForegroundColor = ConsoleColor.White;
             return false;
         }
-        catch (System.NotSupportedException){
-            // Console.ForegroundColor = ConsoleColor.Red;
-            // Console.WriteLine("SCHEME NOT SUPPORTED: " + url);
-            // Console.ForegroundColor = ConsoleColor.White;
-            return false;
-        }
-        catch (Exception)
+        catch (System.NotSupportedException)
         {
-            // Console.ForegroundColor = ConsoleColor.Red;
-            // Console.WriteLine("ERROR PARSING:" + url);
-            // Console.ForegroundColor = ConsoleColor.White;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("(SCHEME NOT SUPPORTED:" + url.Scheme + ")");
+            Console.ForegroundColor = ConsoleColor.White;
+            return false;
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("(ERROR PARSING)");
+            Console.WriteLine(e.ToString());
+            Console.ForegroundColor = ConsoleColor.White;
             return false;
         }
 
         _currentDoc.LoadHtml(htmlStr);
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("(HTML loaded)");
+        Console.ForegroundColor = ConsoleColor.White;
+        _currentUrl = url;
         return true;
     }
 
-    public List<Uri> ExtractUrls(HashSet<Uri> visited)
+    public Articulo ParseArticle(int idResult)
+    {
+        string tema, titular, subtitulo, cuerpo, fecha;
+        bool favorito = false;
+
+        tema = _currentDoc.DocumentNode.SelectSingleNode(
+            "//meta[contains(@name, 'keyword')]"
+        )?.GetAttributeValue("content", "") ?? "";
+
+        titular = _currentDoc.DocumentNode.SelectSingleNode(
+            "//meta[@property='og:title']"
+        )?.GetAttributeValue("content", "") ?? "";
+
+        fecha = _currentDoc.DocumentNode.SelectSingleNode(
+            "//meta[@property='article:published_time']"
+        )?.GetAttributeValue("content", "") ?? "";
+
+        subtitulo = _currentDoc.DocumentNode.SelectSingleNode(
+            "//meta[@property='og:description']"
+        )?.GetAttributeValue("content", "") ?? "";
+
+        var cuerpoNodes = _currentDoc.DocumentNode.SelectNodes(
+            @"
+            //article//p | 
+            //div[contains(@class, 'article')]//p | 
+            //div[contains(@class, 'content')]//p |
+            //div[contains(@class, 'post-content')]//p
+            "
+        );
+        
+        if(cuerpoNodes != null)
+        {
+            var sb = new StringBuilder();
+            foreach(var node in cuerpoNodes)
+            {
+                // Console.ForegroundColor = ConsoleColor.Cyan;
+                // Console.WriteLine("--" + node.InnerText + "--");
+                // Console.ForegroundColor = ConsoleColor.White;
+                sb.Append(node.InnerText);
+            }
+            cuerpo = sb.ToString();
+        }
+        else
+        {
+            cuerpo = "";
+        }
+        
+        var articulo = new Articulo(tema, titular, subtitulo, cuerpo, fecha, idResult, favorito);
+        return articulo;
+    }
+
+    public List<Uri> ExtractUrls()
     {
         var linkNodes = _currentDoc.DocumentNode.SelectNodes("//a[@href]");
         var scrapedLinks = new List<Uri>();
@@ -68,12 +121,10 @@ class Parser
 
             try
             {
-                var extractedUrl = new Uri(link);
-                if (visited.Contains(extractedUrl))
+                var extractedUrl = new Uri(link, UriKind.RelativeOrAbsolute);
+                if (!extractedUrl.IsAbsoluteUri)
                 {
-                    // Console.ForegroundColor = ConsoleColor.Magenta;
-                    // Console.WriteLine("ALREADY VISITED, SKIPPING QUEUEING: " + link);
-                    continue;
+                    extractedUrl = new Uri(_startUrl, extractedUrl);
                 }
                 scrapedLinks.Add(extractedUrl);
             }
@@ -81,26 +132,17 @@ class Parser
             {
                 // Console.ForegroundColor = ConsoleColor.Red;
                 // Console.WriteLine("INVALID URL" + link);
+                // Console.ForegroundColor = ConsoleColor.White;
                 continue;
             }
-
-            // Console.ForegroundColor = ConsoleColor.Cyan;
-            // Console.WriteLine('[' + link + "] ");
-            // Console.ForegroundColor = ConsoleColor.White;
-            // Console.WriteLine(node.InnerText);
-            // Console.WriteLine("--------");
         }
 
         return scrapedLinks;
     }
 
-    public string GetHtml()
-    {
-        return _currentDoc.DocumentNode.OuterHtml;
-    }
-
     private readonly HttpClient _client;
     private readonly HtmlDocument _currentDoc;
-    private readonly Repository _repository;
+    private Uri? _currentUrl;
+    private Uri? _startUrl;
 }
 
