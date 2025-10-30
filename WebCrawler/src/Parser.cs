@@ -42,8 +42,7 @@ class Parser
         catch (Exception e)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("(ERROR PARSING)");
-            Console.WriteLine(e.ToString());
+            Console.WriteLine(e.Message);
             Console.ForegroundColor = ConsoleColor.White;
             return false;
         }

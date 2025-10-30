@@ -635,31 +635,35 @@ async function startScraping() {
     
     // Create notification for scraping start
     createNotification('Scraping iniciado', 'Proceso de extracción de artículos en curso...', 'info');
+    let isSuccess = true;
     
-    // try {
-    //     const response = await fetch('/api/start-scraping', {
-    //         method: "POST",
-	// 		headers: {
-    //             'Content-Type': 'application/json',
-    //         },
-    //         body: JSON.stringify(sources)
-    //     });
-    //     console.log(JSON.stringify(await response.json()));
-    // }
-    // catch(error){
-    //     console.error("error INICIANDO SCRAPING",error);
-    // }
+    let responseObj = Object();
+    try {
+        const urls = sources.map(obj => obj.url)
+        console.log(JSON.stringify(urls));
+        const response = await fetch('/api/start-scraping', {
+            method: "POST",
+			headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(urls)
+        });
+        responseObj = await response.json();
+        console.log(JSON.stringify(responseObj));
+    }
+    catch(error){
+        console.error("ERROR INICIANDO SCRAPING",error);
+        isSuccess = false;
+    }
     
     // Simulate scraping process
     setTimeout(() => {
-        const newArticlesCount = Math.floor(Math.random() * 10) + 1;
-        const isSuccess = Math.random() > 0.2; // 80% success rate
-        
+        const scrapingResult = responseObj.result;
         const newEntry = {
-            id: scrapingHistory.length + 1,
-            date: new Date().toLocaleString('es-ES'),
+            id: scrapingResult.Id,
+            date: scrapingResult.FechaExtraccion,
             status: isSuccess ? 'exitoso' : 'fallido',
-            articlesFound: isSuccess ? newArticlesCount : 0,
+            articlesFound: responseObj.articleList.length,
             source: 'Múltiples fuentes'
         };
         
@@ -667,7 +671,7 @@ async function startScraping() {
         
         if (isSuccess) {
             // Add new articles to simulate scraping results
-            const newArticleIds = addNewScrapedArticles(newArticlesCount, newEntry.id);
+            const newArticleIds = addNewScrapedArticles(3, newEntry.id);
             
             status.textContent = 'Scraping completado. Revisa los nuevos artículos.';
             

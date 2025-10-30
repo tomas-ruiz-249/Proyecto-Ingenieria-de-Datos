@@ -146,7 +146,38 @@ class Repository
             Console.ForegroundColor = ConsoleColor.White;
         }
         return -1;
+    }
+    
+    public Result? GetLastResult(int id)
+    {
+        Result result = default;
+        try
+        {
+            string query = $"""
+                SELECT * FROM Resultado WHERE {id} = id;
+            """;
+            var cmd = new MySqlCommand(query, Connection);
+            var reader = cmd.ExecuteReader();
 
+            while (reader.Read())
+            {
+                result = new Result(
+                    reader.GetInt32("id"),
+                    reader.GetInt32("idUsuarioFK"),
+                    reader.GetInt32("estado"),
+                    reader.GetDateTime("fechaExtraccion")
+                );
+            }
+            reader.Close();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(ex.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        return result;
     }
     private MySqlConnection Connection;
     public bool Connected { get; private set; }

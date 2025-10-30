@@ -49,7 +49,7 @@ class Server
         }
     }
     
-    public void Start()
+    public async Task Start()
     {
         _listener.Start();
         Console.WriteLine($"listening on: ");
@@ -63,7 +63,7 @@ class Server
             while (true)
             {
                 HttpListenerContext context = _listener.GetContext();
-                ProcessRequest(context);
+                await ProcessRequest(context);
             }
         }
         catch(Exception e)
@@ -73,7 +73,7 @@ class Server
         }
 
     }
-    private void ProcessRequest(HttpListenerContext context)
+    private async Task ProcessRequest(HttpListenerContext context)
     {
         HttpListenerRequest request = context.Request;
         HttpListenerResponse response = context.Response;
@@ -81,7 +81,7 @@ class Server
 
         if (request.Url.AbsolutePath == "/api/start-scraping" && request.HttpMethod == "POST")
         {
-            StartScraping(context);
+            await StartScraping(context);
             return;
         }
 
@@ -97,21 +97,43 @@ class Server
         }
     }
 
-    private void StartScraping(HttpListenerContext context)
+    private async Task StartScraping(HttpListenerContext context)
     {
         var response = context.Response;
         var request = context.Request;
-        // var crawlTask =_crawler.Crawl("", _repository);
-        var test = new
+        if (request.HasEntityBody)
         {
-            success = true
-        };
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+            Console.WriteLine("REQUEST WITH BODY: " + body);
+            var sources = JsonSerializer.Deserialize<List<string>>(body) ?? [];
 
-        string json = JsonSerializer.Serialize(test);
-        byte[] buffer = Encoding.UTF8.GetBytes(json);
-        response.ContentLength64 = buffer.Length;
-        response.ContentType = GetContentType(".json");
-        response.OutputStream.Write(buffer, 0, buffer.Length);
+            var articles = new List<Articulo>();
+            foreach(var source in sources)
+            {
+                var scrapedArticles = await _crawler.Crawl(source, _repository);
+                articles.AddRange(scrapedArticles);
+            }
+
+            var responseObj = new
+            {
+                articleList = articles,
+                result = _crawler.LastResult
+            };
+
+            string json = JsonSerializer.Serialize(responseObj);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            response.ContentLength64 = buffer.Length;
+            response.ContentType = GetContentType(".json");
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+        }
+        else
+        {
+            Console.WriteLine("No urls given to start scraping");
+        }
+
+
     }
 
     private string GetFilePath(string urlPath)
