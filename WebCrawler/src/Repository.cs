@@ -16,7 +16,7 @@ class Repository
         catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(ex.ToString());
+            Console.WriteLine(ex.Message);
             Console.ForegroundColor = ConsoleColor.White;
             Connected = false;
         }
@@ -38,7 +38,7 @@ class Repository
         catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(ex.ToString());
+            Console.WriteLine(ex.Message);
             Console.ForegroundColor = ConsoleColor.White;
             success = false;
         }
@@ -102,7 +102,7 @@ class Repository
         catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(ex.ToString());
+            Console.WriteLine(ex.Message);
             Console.ForegroundColor = ConsoleColor.White;
             success = false;
         }
@@ -142,7 +142,7 @@ class Repository
         catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(ex.ToString());
+            Console.WriteLine(ex.Message);
             Console.ForegroundColor = ConsoleColor.White;
         }
         return -1;

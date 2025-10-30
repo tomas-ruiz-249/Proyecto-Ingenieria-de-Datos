@@ -625,7 +625,7 @@ function removeSource(sourceId) {
     }
 }
 
-function startScraping() {
+async function startScraping() {
     const button = document.getElementById('startScraping');
     const status = document.getElementById('scrapingStatus');
     
@@ -635,6 +635,20 @@ function startScraping() {
     
     // Create notification for scraping start
     createNotification('Scraping iniciado', 'Proceso de extracción de artículos en curso...', 'info');
+    
+    // try {
+    //     const response = await fetch('/api/start-scraping', {
+    //         method: "POST",
+	// 		headers: {
+    //             'Content-Type': 'application/json',
+    //         },
+    //         body: JSON.stringify(sources)
+    //     });
+    //     console.log(JSON.stringify(await response.json()));
+    // }
+    // catch(error){
+    //     console.error("error INICIANDO SCRAPING",error);
+    // }
     
     // Simulate scraping process
     setTimeout(() => {

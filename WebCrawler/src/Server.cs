@@ -1,4 +1,7 @@
 using System.Net;
+using System.Net.NetworkInformation;
+using System.Text;
+using System.Text.Json;
 
 class Server
 {
@@ -7,12 +10,54 @@ class Server
         _listener = new HttpListener();
         _listener.Prefixes.Add(prefix);
         _crawler = new Crawler();
+
+        _repository = new Repository("server=localhost;user=root;database=WebCrawler;port=3306;");
+        if (!_repository.ConnectToServer())
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("ERROR CONNECTING TO MYSQL SERVER");
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Connected to MySQL server");
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+    }
+    public Server(string[] prefixes)
+    {
+        _listener = new HttpListener();
+        foreach(var prefix in prefixes)
+        {
+            _listener.Prefixes.Add(prefix);
+        }
+        _crawler = new Crawler();
+
+        _repository = new Repository("server=localhost;user=root;database=WebCrawler;port=3306;");
+        if (!_repository.ConnectToServer())
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine("ERROR CONNECTING TO MYSQL SERVER");
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Connected to MySQL server");
+            Console.ForegroundColor = ConsoleColor.White;
+        }
     }
     
     public void Start()
     {
         _listener.Start();
-        Console.WriteLine($"listening on {_listener.Prefixes.AsEnumerable<string>().FirstOrDefault()}");
+        Console.WriteLine($"listening on: ");
+        foreach(var prefix in _listener.Prefixes)
+        {
+            Console.WriteLine($"{prefix}");
+        }
+
         try
         {
             while (true)
@@ -31,10 +76,15 @@ class Server
     private void ProcessRequest(HttpListenerContext context)
     {
         HttpListenerRequest request = context.Request;
-        // Obtain a response object.
         HttpListenerResponse response = context.Response;
+        Console.WriteLine($"{request.HttpMethod} request to {request.Url.AbsolutePath}");
 
-        // string path = request.Url.LocalPath;
+        if (request.Url.AbsolutePath == "/api/start-scraping" && request.HttpMethod == "POST")
+        {
+            StartScraping(context);
+            return;
+        }
+
         string path = GetFilePath(request.Url.LocalPath);
 
         if (File.Exists(path))
@@ -43,8 +93,25 @@ class Server
         }
         else
         {
-            Console.WriteLine($"path does not exist {path}");
+            Console.WriteLine($"file does not exist {path}");
         }
+    }
+
+    private void StartScraping(HttpListenerContext context)
+    {
+        var response = context.Response;
+        var request = context.Request;
+        // var crawlTask =_crawler.Crawl("", _repository);
+        var test = new
+        {
+            success = true
+        };
+
+        string json = JsonSerializer.Serialize(test);
+        byte[] buffer = Encoding.UTF8.GetBytes(json);
+        response.ContentLength64 = buffer.Length;
+        response.ContentType = GetContentType(".json");
+        response.OutputStream.Write(buffer, 0, buffer.Length);
     }
 
     private string GetFilePath(string urlPath)
@@ -92,7 +159,8 @@ class Server
             : "application/octet-stream"; // Default: treat as binary file
     }
 
-	private HttpListener _listener;
-    private Crawler _crawler;
+	private readonly HttpListener _listener;
+    private readonly Crawler _crawler;
+    private readonly Repository _repository;
     private const string _WebDirPath = "../../../../Interfaz web/";
 }
