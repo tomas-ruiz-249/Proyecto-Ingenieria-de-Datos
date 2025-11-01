@@ -6,50 +6,10 @@ let currentUser = {
     email: "juan.perez@email.com"
 };
 
-let articles = [
-    {
-        id: 1,
-        title: "Avances en Inteligencia Artificial transforman la industria",
-        content: "Los últimos desarrollos en IA están revolucionando múltiples sectores. La implementación de algoritmos de aprendizaje automático ha permitido automatizar procesos complejos, mejorando la eficiencia y reduciendo costos operativos. Empresas de tecnología lideran esta transformación digital que promete cambiar la forma en que trabajamos y vivimos.",
-        source: "TechNews",
-        category: "tecnologia",
-        date: "2024-01-15",
-        url: "https://technews.com/ai-industry-transformation",
-        keywords: ["inteligencia artificial", "tecnología", "industria"],
-        isFavorite: false,
-        isDiscarded: false,
-        scrapingResultId: 1
-    },
-    {
-        id: 2,
-        title: "Nueva política económica genera debate",
-        content: "El gobierno anuncia medidas económicas que dividen opiniones entre expertos y ciudadanos. Las nuevas regulaciones fiscales buscan estimular el crecimiento económico, pero algunos analistas expresan preocupación por su impacto a largo plazo en la inflación y el empleo.",
-        source: "Noticias Económicas",
-        category: "economia",
-        date: "2024-01-14",
-        url: "https://noticiaseconomicas.com/nueva-politica-economica",
-        keywords: ["política", "economía", "gobierno"],
-        isFavorite: true,
-        isDiscarded: false,
-        scrapingResultId: 2
-    },
-    {
-        id: 3,
-        title: "Descubrimiento médico promete nuevos tratamientos",
-        content: "Investigadores desarrollan terapia innovadora para enfermedades neurodegenerativas. El nuevo tratamiento, basado en terapia génica, ha mostrado resultados prometedores en ensayos clínicos, ofreciendo esperanza a millones de pacientes que sufren de condiciones como Alzheimer y Parkinson.",
-        source: "Salud Hoy",
-        category: "salud",
-        date: "2024-01-13",
-        url: "https://saludhoy.com/descubrimiento-medico-tratamientos",
-        keywords: ["medicina", "investigación", "tratamiento"],
-        isFavorite: false,
-        isDiscarded: false,
-        scrapingResultId: 3
-    }
-];
+let articles = [];
 
 let notifications = [
-    {
+/*     {
         id: 1,
         title: "Scraping completado exitosamente",
         message: "Se encontraron 15 nuevos artículos de TechNews",
@@ -84,19 +44,19 @@ let notifications = [
         date: "2024-01-13 14:20",
         isRead: false,
         scrapingResultId: null
-    }
+    } */
 ];
 
 let sources = [
-    { id: 1, name: "TechNews", url: "https://technews.com", active: true },
-    { id: 2, name: "Noticias Económicas", url: "https://noticiaseconomicas.com", active: true },
-    { id: 3, name: "Salud Hoy", url: "https://saludhoy.com", active: true }
+    { id: 1, name: "El Espectador", url: "https://elespectador.com", active: true },
+    // { id: 2, name: "Noticias Económicas", url: "https://noticiaseconomicas.com", active: true },
+    // { id: 3, name: "Salud Hoy", url: "https://saludhoy.com", active: true }
 ];
 
 let scrapingHistory = [
-    { id: 1, date: "2024-01-15 10:30", status: "exitoso", articlesFound: 15, source: "TechNews" },
-    { id: 2, date: "2024-01-15 09:15", status: "exitoso", articlesFound: 8, source: "Salud Hoy" },
-    { id: 3, date: "2024-01-14 16:45", status: "fallido", articlesFound: 0, source: "Noticias Económicas" }
+    // { id: 1, date: "2024-01-15 10:30", status: "exitoso", articlesFound: 15, source: "TechNews" },
+    // { id: 2, date: "2024-01-15 09:15", status: "exitoso", articlesFound: 8, source: "Salud Hoy" },
+    // { id: 3, date: "2024-01-14 16:45", status: "fallido", articlesFound: 0, source: "Noticias Económicas" }
 ];
 
 // DOM elements
@@ -118,7 +78,24 @@ function init() {
     updateNotificationCount();
 }
 
-function renderNotifications(filteredNotifications = null) {
+async function renderNotifications(filteredNotifications = null) {
+    if (filteredNotifications == null){
+        try{
+            response = await fetch('/api/get-notifications',
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                }
+            );
+            var response = await response.json();
+            notifications = response.notifList;
+        }
+        catch (error){
+            console.log("error al obtener notificaciones", error)
+        }
+    }
     const notificationsToRender = filteredNotifications || notifications;
     const container = document.getElementById('notificationsList');
     
@@ -128,37 +105,37 @@ function renderNotifications(filteredNotifications = null) {
     }
 
     container.innerHTML = notificationsToRender.map(notification => {
-        const typeColors = {
-            success: 'border-green-500 bg-green-50',
-            error: 'border-red-500 bg-red-50',
-            warning: 'border-yellow-500 bg-yellow-50',
-            info: 'border-blue-500 bg-blue-50'
-        };
+        const typeColors = [
+            'border-green-500 bg-green-50',
+            'border-red-500 bg-red-50',
+            'border-blue-500 bg-blue-50',
+            'border-yellow-500 bg-yellow-50'
+        ];
         
-        const typeIcons = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: 'ℹ️'
-        };
+        const typeIcons = [
+            '✅',
+            '❌',
+            'ℹ️',
+            '⚠️'
+        ];
 
         return `
-            <div class="border-l-4 p-4 rounded-lg ${typeColors[notification.type]} ${!notification.isRead ? 'font-medium' : ''} fade-in">
+            <div class="border-l-4 p-4 rounded-lg ${typeColors[notification.Tipo]} ${!notification.Leido ? 'font-medium' : ''} fade-in">
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
                         <div class="flex items-center space-x-2 mb-1">
-                            <span>${typeIcons[notification.type]}</span>
-                            <h4 class="text-sm font-medium text-gray-900">${notification.title}</h4>
-                            ${!notification.isRead ? '<span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">Nueva</span>' : ''}
+                            <span>${typeIcons[notification.Tipo]}</span>
+                            <h4 class="text-sm font-medium text-gray-900">${notification.Mensaje}</h4>
+                            ${!notification.Leido ? '<span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">Nueva</span>' : ''}
                         </div>
-                        <p class="text-sm text-gray-600 mb-2">${notification.message}</p>
-                        <div class="text-xs text-gray-500">${notification.date}</div>
+                        <p class="text-sm text-gray-600 mb-2">${notification.Mensaje}</p>
+                        <div class="text-xs text-gray-500"></div>
                     </div>
                     <div class="flex space-x-1 ml-4">
-                        <button onclick="toggleNotificationRead(${notification.id})" class="p-1 text-gray-400 hover:text-blue-500" title="${notification.isRead ? 'Marcar como no leída' : 'Marcar como leída'}">
-                            ${notification.isRead ? '📧' : '📬'}
+                        <button onclick="toggleNotificationRead(${notification.Id})" class="p-1 text-gray-400 hover:text-blue-500" title="${notification.Leido ? 'Marcar como no leída' : 'Marcar como leída'}">
+                            ${notification.Leido ? '📧' : '📬'}
                         </button>
-                        <button onclick="deleteNotification(${notification.id})" class="p-1 text-gray-400 hover:text-red-500" title="Eliminar notificación">
+                        <button onclick="deleteNotification(${notification.Id})" class="p-1 text-gray-400 hover:text-red-500" title="Eliminar notificación">
                             🗑️
                         </button>
                     </div>
@@ -179,23 +156,53 @@ function updateNotificationCount() {
     }
 }
 
-function toggleNotificationRead(notificationId) {
-    const notification = notifications.find(n => n.id === notificationId);
+async function toggleNotificationRead(notificationId) {
+    const notification = notifications.find(n => n.Id === notificationId);
     if (notification) {
-        notification.isRead = !notification.isRead;
+		try{
+            const response = await fetch('/api/update-notif-read',
+                {
+                    method: "PATCH",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(notificationId)
+                }
+            );
+		}
+        catch(error){
+            console.error('error toggling notification read status', error)
+        }
         renderNotifications();
         updateNotificationCount();
-        showNotification(`Notificación marcada como ${notification.isRead ? 'leída' : 'no leída'}`, 'info');
+        showNotification(`Notificación marcada como ${notification.Leida ? 'leída' : 'no leída'}`, 'info');
     }
 }
 
-function deleteNotification(notificationId) {
-    const index = notifications.findIndex(n => n.id === notificationId);
+async function deleteNotification(notificationId) {
+    const index = notifications.findIndex(n => n.Id === notificationId);
+    let success = true;
     if (index !== -1) {
-        notifications.splice(index, 1);
+		try{
+            const response = await fetch(`/api/delete-notif?id=${notificationId}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+		}
+        catch(error){
+            success = false;
+            console.error('error deleting notification', error)
+        }
+        if(success){
+            notifications.splice(index, 1);
+            showNotification('Notificación eliminada', 'info');
+        }
         renderNotifications();
         updateNotificationCount();
-        showNotification('Notificación eliminada', 'info');
     }
 }
 
@@ -218,14 +225,14 @@ function applyNotificationFilters() {
     const readFilter = document.getElementById('notificationReadFilter').value;
 
     let filtered = notifications;
-
+    
     if (statusFilter) {
-        filtered = filtered.filter(n => n.type === statusFilter);
+        filtered = filtered.filter(n => n.Tipo == statusFilter);
     }
     if (readFilter === 'read') {
-        filtered = filtered.filter(n => n.isRead);
+        filtered = filtered.filter(n => n.Leido);
     } else if (readFilter === 'unread') {
-        filtered = filtered.filter(n => !n.isRead);
+        filtered = filtered.filter(n => !n.Leido);
     }
 
     renderNotifications(filtered);
@@ -652,26 +659,26 @@ async function startScraping() {
         console.log(JSON.stringify(responseObj));
     }
     catch(error){
-        console.error("ERROR INICIANDO SCRAPING",error);
+        console.error("error al iniciar scraping",error);
         isSuccess = false;
     }
     
     // Simulate scraping process
     setTimeout(() => {
-        const scrapingResult = responseObj.result;
-        const newEntry = {
-            id: scrapingResult.Id,
-            date: scrapingResult.FechaExtraccion,
-            status: isSuccess ? 'exitoso' : 'fallido',
-            articlesFound: responseObj.articleList.length,
-            source: 'Múltiples fuentes'
-        };
+        // const scrapingResult = responseObj.result;
+        // const newEntry = {
+        //     id: scrapingResult.Id,
+        //     date: scrapingResult.FechaExtraccion,
+        //     status: isSuccess ? 'exitoso' : 'fallido',
+        //     articlesFound: responseObj.articleList.length,
+        //     source: 'Múltiples fuentes'
+        // };
         
         scrapingHistory.unshift(newEntry);
         
         if (isSuccess) {
             // Add new articles to simulate scraping results
-            const newArticleIds = addNewScrapedArticles(3, newEntry.id);
+            const newArticleIds = addNewScrapedArticles(responseObj.articleList, responseObj.sourceList);
             
             status.textContent = 'Scraping completado. Revisa los nuevos artículos.';
             
@@ -691,6 +698,7 @@ async function startScraping() {
             createNotification('Scraping completado', 
                 `${newArticlesCount} nuevos artículos encontrados. Revísalos para decidir cuáles conservar.`, 
                 'success', newEntry.id);
+
         } else {
             renderScrapingHistory();
             updateStats();
@@ -704,38 +712,25 @@ async function startScraping() {
     }, 3000);
 }
 
-function addNewScrapedArticles(count, scrapingResultId) {
-    const sampleTitles = [
-        "Nuevos avances en energía renovable",
-        "Cambios en la política fiscal nacional",
-        "Descubrimiento científico revolucionario",
-        "Innovaciones en transporte público",
-        "Reformas en el sistema educativo",
-        "Desarrollo de nuevas tecnologías médicas",
-        "Impacto del cambio climático en la agricultura",
-        "Tendencias en el mercado inmobiliario",
-        "Avances en inteligencia artificial aplicada",
-        "Nuevas regulaciones ambientales"
-    ];
-    
-    const categories = ["tecnologia", "economia", "salud", "politica", "ciencia"];
-    const sources = ["TechNews", "Noticias Económicas", "Salud Hoy", "Ciencia Diaria", "Política Actual"];
+function addNewScrapedArticles(articleList, sourceList) {
     const newArticleIds = [];
-    
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < articleList.length; i++) {
+        const article = articleList[i];
+        const source = sourceList[i];
         const newArticle = {
-            id: articles.length + 1,
-            title: sampleTitles[Math.floor(Math.random() * sampleTitles.length)],
-            content: "Contenido del artículo extraído durante el proceso de scraping. Este texto representa el contenido completo del artículo que fue procesado automáticamente.",
-            source: sources[Math.floor(Math.random() * sources.length)],
-            category: categories[Math.floor(Math.random() * categories.length)],
-            date: new Date().toISOString().split('T')[0],
-            url: `https://example.com/article-${articles.length + 1}`,
-            keywords: ["scraping", "automatico", "nuevo"],
-            isFavorite: false,
+            id: article.Id,
+            keywords: article.Tema.split(/[,]+/).filter(Boolean),
+            title: article.Titular,
+            content: article.Cuerpo,
+            date: article.Fecha,
+            isFavorite: article.Favorito,
+            scrapingResultId: article.IdResultado,
+
+            category: source.Tipo,
+            source: source.Nombre,
+            url: source.Url,
             isDiscarded: false,
-            scrapingResultId: scrapingResultId,
-            isNew: true // Mark as new for review
+            isNew: true
         };
         
         articles.push(newArticle);

@@ -17,9 +17,9 @@ class Crawler
         _visited = [];
     }
 
-    public async Task<List<Articulo>> Crawl(string startUrl, Repository repository)
+    public async Task<List<(Articulo article, Fuente source)>> Crawl(string startUrl, Repository repository)
     {
-        var scrapedArticles = new List<Articulo>();
+        var scrapedArticles = new List<(Articulo article, Fuente source)>();
         if (!repository.Connected)
         {
             Console.WriteLine("No database connection.Crawling aborted...");
@@ -47,6 +47,7 @@ class Crawler
             if (!success) continue;
             _visited.Add(currentUrl);
             var articulo = _parser.ParseArticle(resultId);
+            var fuente = _parser.ParseSource();
 
             var extractedUrls = _parser.ExtractUrls();
 
@@ -76,14 +77,15 @@ class Crawler
             Console.WriteLine(articulo);
             Console.ForegroundColor = ConsoleColor.White;
 
-            if(repository.StoreArticle(articulo, currentUrl, resultId))
+            if(repository.StoreArticleWithSource(articulo, fuente, resultId))
             {
                 articleCount++;
-                scrapedArticles.Add(articulo);
+                var articleSourceTuple = (articulo, fuente);
+                scrapedArticles.Add(articleSourceTuple);
             }
 
         }
-        _urls.Clear();
+        // _urls.Clear();
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"scraping attempt ended with {articleCount} articles found and registered in the database...");
         Console.ForegroundColor = ConsoleColor.White;

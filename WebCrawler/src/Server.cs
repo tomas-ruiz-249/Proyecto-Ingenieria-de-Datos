@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.Json;
+using System.Web;
 
 class Server
 {
@@ -79,10 +80,39 @@ class Server
         HttpListenerResponse response = context.Response;
         Console.WriteLine($"{request.HttpMethod} request to {request.Url.AbsolutePath}");
 
-        if (request.Url.AbsolutePath == "/api/start-scraping" && request.HttpMethod == "POST")
+        if (request.HttpMethod == "POST")
         {
-            await StartScraping(context);
-            return;
+            if (request.Url.AbsolutePath == "/api/start-scraping")
+            {
+                await StartScraping(context);
+                return;
+            }
+        }
+        else if (request.HttpMethod == "GET")
+        {
+            if (request.Url.AbsolutePath == "/api/get-notifications")
+            {
+                GetNotifications(context);
+                return;
+            }
+        }
+        else if (request.HttpMethod == "PATCH")
+        {
+            if (request.Url.AbsolutePath == "/api/update-notif-read")
+            {
+                UpdateNotificationRead(context);
+                return;
+            }
+        }
+        else if (request.HttpMethod == "DELETE")
+        {
+            if (request.Url.AbsolutePath.Contains("/api/delete-notif"))
+            {
+                var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+                var id = Convert.ToInt32(parsedUrl["id"]);
+                Console.WriteLine($"DELETING NOTIF WITH ID {id}");
+                return;
+            }
         }
 
         string path = GetFilePath(request.Url.LocalPath);
@@ -95,6 +125,39 @@ class Server
         {
             Console.WriteLine($"file does not exist {path}");
         }
+    }
+    private void UpdateNotificationRead(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        if (request.HasEntityBody)
+        {
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+            var notifId = JsonSerializer.Deserialize<int>(body);
+            _repository.UpdateReadNotification(notifId);
+			byte[] buffer = Encoding.UTF8.GetBytes("");
+			response.ContentLength64 = buffer.Length;
+			response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+        }
+    }
+    
+    private void GetNotifications(HttpListenerContext context)
+    {
+        var response = context.Response;
+        var notifications = _repository.GetNotifications();
+        var responseObj = new
+        {
+            notifList = notifications
+        };
+        string json = JsonSerializer.Serialize(responseObj);
+        byte[] buffer = Encoding.UTF8.GetBytes(json);
+        response.ContentLength64 = buffer.Length;
+        response.ContentType = GetContentType(".json");
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
     }
 
     private async Task StartScraping(HttpListenerContext context)
@@ -109,16 +172,17 @@ class Server
             Console.WriteLine("REQUEST WITH BODY: " + body);
             var sources = JsonSerializer.Deserialize<List<string>>(body) ?? [];
 
-            var articles = new List<Articulo>();
+            var scrapedData = new List<(Articulo article, Fuente source)>();
             foreach(var source in sources)
             {
                 var scrapedArticles = await _crawler.Crawl(source, _repository);
-                articles.AddRange(scrapedArticles);
+                scrapedData.AddRange(scrapedArticles);
             }
 
             var responseObj = new
             {
-                articleList = articles,
+                articleList = scrapedData.Select(t => t.article).ToList(),
+                sourceList = scrapedData.Select(t => t.source).ToList(),
                 result = _crawler.LastResult
             };
 
@@ -127,13 +191,12 @@ class Server
             response.ContentLength64 = buffer.Length;
             response.ContentType = GetContentType(".json");
             response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
         }
         else
         {
             Console.WriteLine("No urls given to start scraping");
         }
-
-
     }
 
     private string GetFilePath(string urlPath)

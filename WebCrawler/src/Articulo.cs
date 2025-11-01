@@ -14,6 +14,7 @@ public class Articulo(string tema, string titular, string subtitulo, string cuer
             fecha: {Fecha}
         """;
     }
+    public int Id { get; set; }
     public string Tema { get; set; } = tema;
     public string Titular { get; set; } = titular;
     public string Subtitulo { get; set; } = subtitulo;

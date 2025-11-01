@@ -15,12 +15,11 @@ CREATE PROCEDURE RegistrarArticulo(
     IN p_favorito BOOL,
     IN p_url VARCHAR(500),
     IN p_tipo VARCHAR(50),
-    IN p_nombreFuente VARCHAR(500)
+    IN p_nombreFuente VARCHAR(500),
+    OUT p_idArticulo INT,
+    OUT p_idFuente INT
 )
 BEGIN
-    DECLARE v_idFuente INT;
-    DECLARE v_idArticulo INT;
-
 	INSERT INTO Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK, favorito)
     VALUES (
         IFNULL(p_tema, ''),
@@ -31,20 +30,20 @@ BEGIN
         p_idResultadoFK,
         p_favorito
     );
-    SET v_idArticulo = LAST_INSERT_ID();
-	
-    SELECT id INTO v_idFuente
+    SET p_idArticulo = LAST_INSERT_ID();
+    
+    SELECT id INTO p_idFuente
     FROM Fuente
     WHERE url = p_url AND nombre = p_nombreFuente
     LIMIT 1;
 
-    IF v_idFuente IS NULL THEN
+    IF p_idFuente IS NULL THEN
         INSERT INTO Fuente (url, tipo, nombre)
         VALUES (p_url, p_tipo, p_nombreFuente);
-        SET v_idFuente = LAST_INSERT_ID();
+        SET p_idFuente = LAST_INSERT_ID();
         
         INSERT INTO ArticuloDetalle (idArticuloFK, idFuenteFK)
-		VALUES (v_idArticulo, v_idFuente);
+		VALUES (p_idArticulo, p_idFuente);
     END IF;
 END$$
 DELIMITER ;

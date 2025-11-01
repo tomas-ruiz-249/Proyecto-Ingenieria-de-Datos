@@ -1,3 +1,4 @@
+using System.Data;
 using MySqlConnector;
 class Repository
 {
@@ -59,7 +60,7 @@ class Repository
         return success;
     }
 
-    public bool StoreArticle(Articulo a, Uri url, int idResultado)
+    public bool StoreArticleWithSource(Articulo a, Fuente f, int idResultado)
     {
         var success = true;
         try
@@ -70,34 +71,30 @@ class Repository
                 fechaDateTime = parsedDate;
             }
 
-            string query = @"
-				CALL RegistrarArticulo(
-                    @tema,
-                    @titular,
-                    @subtitulo,
-                    @cuerpo,
-                    @fecha,
-                    @idResultado,
-                    @favorito,
-                    @url,
-                    @tipo,
-                    @nombreFuente
-                );
-			";
+            string query = "RegistrarArticulo";
 
             var cmd = new MySqlCommand(query, Connection);
-            cmd.Parameters.AddWithValue("@tema", a.Tema ?? "");
-            cmd.Parameters.AddWithValue("@titular", a.Titular ?? "");
-            cmd.Parameters.AddWithValue("@subtitulo", a.Subtitulo ?? "");
-            cmd.Parameters.AddWithValue("@cuerpo", a.Cuerpo ?? "");
-            cmd.Parameters.AddWithValue("@fecha", fechaDateTime ?? (object)DBNull.Value); // Use DBNull if parsing failed
-            cmd.Parameters.AddWithValue("@idResultado", idResultado);
-            cmd.Parameters.AddWithValue("@favorito", false);
-            cmd.Parameters.AddWithValue("@url", url.AbsolutePath ?? "");
-            cmd.Parameters.AddWithValue("@tipo", "articulo");
-            cmd.Parameters.AddWithValue("@nombreFuente", url.AbsolutePath ?? "");
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@p_tema", a.Tema ?? "");
+            cmd.Parameters.AddWithValue("@p_titular", a.Titular ?? "");
+            cmd.Parameters.AddWithValue("@p_subtitulo", a.Subtitulo ?? "");
+            cmd.Parameters.AddWithValue("@p_cuerpo", a.Cuerpo ?? "");
+            cmd.Parameters.AddWithValue("@p_fecha", fechaDateTime ?? (object)DBNull.Value); // Use DBNull if parsing failed
+            cmd.Parameters.AddWithValue("@p_idResultadoFK", idResultado);
+            cmd.Parameters.AddWithValue("@p_favorito", false);
+            cmd.Parameters.AddWithValue("@p_url", f.Url ?? "");
+            cmd.Parameters.AddWithValue("@p_tipo", "articulo");
+            cmd.Parameters.AddWithValue("@p_nombreFuente", f.Nombre ?? "");
+            cmd.Parameters.Add("@p_idArticulo", MySqlDbType.Int32);
+            cmd.Parameters["@p_idArticulo"].Direction = ParameterDirection.Output;
+            cmd.Parameters.Add("@p_idFuente", MySqlDbType.Int32);
+            cmd.Parameters["@p_idArticulo"].Direction = ParameterDirection.Output;
 
             int rowsAffected = cmd.ExecuteNonQuery();
+            int idArticulo = (int)cmd.Parameters["@p_idArticulo"].Value!;
+            a.Id = idArticulo;
+            int idFuente = (int)cmd.Parameters["@p_idFuente"].Value!;
+            f.Id = idFuente;
         }
         catch (Exception ex)
         {
@@ -120,6 +117,57 @@ class Repository
             Console.ForegroundColor = ConsoleColor.White;
         }
         return success;
+    }
+
+    public List<Notificacion> GetNotifications()
+    {
+        var notifications = new List<Notificacion>();
+        try
+        {
+            string procedure = "ConsultarNotificaciones";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("idUsuarioP", 1);
+            cmd.Parameters.AddWithValue("mensajeP", "");
+            cmd.Parameters["mensajeP"].Direction = ParameterDirection.Output;
+            var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                var id = rdr.GetInt32("id");
+                var mensaje = rdr.GetString("mensaje");
+                var tipo = rdr.GetInt32("tipo");
+                var leido = rdr.GetBoolean("leido");
+                var idResultado = rdr.GetInt32("idResultadoFK");
+                var notif = new Notificacion(id, mensaje, tipo, leido, idResultado);
+                notifications.Add(notif);
+            }
+            rdr.Close();
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        return notifications;
+    }
+    
+    public void UpdateReadNotification(int notifId)
+    {
+        try
+        {
+            string procedure = "AsignarLecturaNotificacion";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("idNotificacionP", notifId);
+            var rowsAffected = cmd.ExecuteNonQuery();
+        }
+        catch(Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
     }
 
     public int GetLastResultId()
