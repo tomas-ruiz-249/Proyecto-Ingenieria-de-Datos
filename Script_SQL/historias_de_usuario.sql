@@ -53,8 +53,10 @@ DELIMITER ;
 Delimiter $$
 Create Procedure ConsultarArticulos(IN idUsuarioP INT)
 Begin
-	Select * from Articulo a
+	SELECT a.*, f.id as idFuente, f.url, f.tipo, f.nombre FROM Articulo a
     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+    INNER JOIN ArticuloDetalle ad ON ad.idArticuloFK = a.id
+    INNER JOIN Fuente f ON f.id = ad.idFuenteFK
     WHERE idUsuarioP = r.idUsuarioFK;
 End $$
 Delimiter ;
@@ -191,12 +193,11 @@ CREATE TRIGGER EvitarArticulosDuplicados
 BEFORE INSERT ON Articulo
 FOR EACH ROW
 BEGIN 
-	DECLARE v_url VARCHAR(500);
-    DECLARE V_idArticulo INT;
     IF EXISTS(
 		SELECT * FROM Articulo a
-        WHERE NEW.titular = titular 
-		AND NEW.subtitulo = subtitulo
+        INNER JOIN Resultado r ON r.id = a.idResultadoFK
+        WHERE NEW.titular = a.titular 
+        AND r.idUsuarioFK = (SELECT idUsuarioFK FROM Resultado WHERE id = NEW.idResultadoFK)
 	) THEN
 		SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Articulo duplicado, inserción cancelada';
@@ -341,26 +342,37 @@ delimiter ;
 
 #HU022 Registrar Nuevo usuario en el sistema
 Delimiter $$
-Create Procedure RegistrarUsuario(IN xnombres VARCHAR(30), IN xapellidos VARCHAR(30), IN xcontrasena VARCHAR(30), IN xemail VARCHAR(30), OUT xmensaje VARCHAR(100))
+Create Procedure RegistrarUsuario(
+	IN xnombres VARCHAR(30),
+    IN xapellidos VARCHAR(30),
+    IN xcontrasena VARCHAR(30), 
+    IN xemail VARCHAR(30)
+)
 Begin
     Insert Into Usuario(nombres, apellidos, contraseña, correo)
     Values (xnombres, xapellidos, xcontrasena, xemail);
-    Set xmensaje = "El usuario se ha registrado correctamente";
 End $$
 Delimiter ;
 
 
 #HU023 Iniciar sesion en la plataforma
 Delimiter $$
-Create Procedure IniciarSesion(IN xemail VARCHAR(30), IN xcontrasena VARCHAR(30), OUT xmensaje VARCHAR(100))
+Create Procedure IniciarSesion(IN xemail VARCHAR(30), IN xcontrasena VARCHAR(30), OUT xidUsuario INT)
 Begin
 	IF EXISTS(Select 1 from Usuario where correo = xemail and contraseña = xcontrasena) THEN 
-		Set xmensaje = "Inicio de sesion validado";
+		Select id into xidUsuario from Usuario where correo = xemail and contraseña = xcontrasena;
     ELSE 
-		Set xmensaje = "El correo o la contrasena son incorrectos";
+		Set xidUsuario = -1;
 	End IF;
 End $$
 Delimiter ;
+
+DELIMITER $$
+CREATE PROCEDURE ConsultarUsuario(IN idP INT)
+BEGIN
+	SELECT * FROM Usuario WHERE id = idP;
+END $$
+DELIMITER ;
 
  #HU024 Cerrar sesion Simbolico en sql (FRONTEND BACKEND)
 # esto ocurre en la interfaz
@@ -426,13 +438,12 @@ DELIMITER ;
 #HU029 Marcar notificación como leída/no leída
 DELIMITER $$
 CREATE PROCEDURE AsignarLecturaNotificacion(
-    IN idNotificacionP INT,
-    IN leidaP BOOL
+    IN idNotificacionP INT
 )
 BEGIN
-    UPDATE Notificacion SET leida = leidaP WHERE id = idNotificacionP;
+    UPDATE Notificacion SET leido = TRUE WHERE id = idNotificacionP;
 END $$
-DELIMITER ;
+DELIMITER ; 
 
 -- HU030 Eliminar notificacion --------------------------------------------
 delimiter $$
@@ -440,8 +451,8 @@ create procedure eliminar_notificacion(
     in p_id_notificacion int
 )
 begin
-    if exists (select 1 from notificacion where id = p_id_notificacion) then
-        delete from notificacion where id = p_id_notificacion;
+    if exists (select 1 from Notificacion where id = p_id_notificacion) then
+        delete from Notificacion where id = p_id_notificacion;
         select 'la notificacion fue eliminada correctamente' as mensaje;
     else
         select 'la notificacion no existe' as mensaje;
@@ -508,22 +519,21 @@ DELIMITER ;
 
 #HU035 Filtrar notificaciones por estado
 DELIMITER $$
-CREATE PROCEDURE EstadoNotificacion(IN idUsuarioP INT, IN tipoP INT, OUT mensajeP varchar(100))
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM Resultado r 
-        INNER JOIN Notificacion n ON n.idResultadoFK = r.id
-        WHERE r.idUsuarioFK = idUsuarioP AND n.tipo = tipoP
-    ) THEN
-		SELECT n.*, r.id , r.estado, r.fechaExtraccion FROM Notificacion n
-		INNER JOIN Resultado r ON n.idResultadoFK = r.id
-		WHERE n.tipo = tipoP AND idUsuarioP = r.idUsuarioFK;
-		SET mensajeP = "exito";
-	ELSE
-		SET mensajeP = "No hay notificaciones del tipo especificado";
-	END IF;
+CREATE PROCEDURE FiltrarNotificacion(
+	IN idUsuarioP INT,
+    IN tipoP INT,
+    IN leidoP BOOL
+)
+BEGIN 
+	SELECT n.* FROM Notificacion n
+	INNER JOIN Resultado r ON n.idResultadoFK = r.id
+	WHERE 1=1
+	AND n.tipo = COALESCE(tipoP, n.tipo)
+	AND r.idUsuarioFK = COALESCE(idUsuarioP,r.idUsuarioFK)
+	AND n.leido = COALESCE(leidoP, n.leido);
 END $$
 DELIMITER ;
+
 
 #HU036 Filtrar articulos por busqueda avanzada 
 DELIMITER $$

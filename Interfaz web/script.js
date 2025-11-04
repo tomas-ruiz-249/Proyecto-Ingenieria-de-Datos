@@ -1,63 +1,19 @@
 // Sample data
 let currentUser = {
-    username: null,
-    firstName: "Juan",
-    lastName: "Pérez",
-    email: "juan.perez@email.com"
+    id: -1,
+    nombres: "",
+    apellidos: "",
+    email: ""
 };
 
 let articles = [];
-
-let notifications = [
-/*     {
-        id: 1,
-        title: "Scraping completado exitosamente",
-        message: "Se encontraron 15 nuevos artículos de TechNews",
-        type: "success",
-        date: "2024-01-15 10:30",
-        isRead: false,
-        scrapingResultId: 1
-    },
-    {
-        id: 2,
-        title: "Error en scraping",
-        message: "No se pudo acceder a la fuente Noticias Económicas",
-        type: "error",
-        date: "2024-01-14 16:45",
-        isRead: false,
-        scrapingResultId: 2
-    },
-    {
-        id: 3,
-        title: "Nuevos artículos disponibles",
-        message: "8 artículos agregados desde Salud Hoy",
-        type: "info",
-        date: "2024-01-15 09:15",
-        isRead: true,
-        scrapingResultId: 3
-    },
-    {
-        id: 4,
-        title: "Fuente desactivada",
-        message: "La fuente 'Deportes Hoy' ha sido desactivada por errores repetidos",
-        type: "warning",
-        date: "2024-01-13 14:20",
-        isRead: false,
-        scrapingResultId: null
-    } */
-];
+let notifications = [];
 
 let sources = [
     { id: 1, name: "El Espectador", url: "https://elespectador.com", active: true },
-    // { id: 2, name: "Noticias Económicas", url: "https://noticiaseconomicas.com", active: true },
-    // { id: 3, name: "Salud Hoy", url: "https://saludhoy.com", active: true }
 ];
 
-let scrapingHistory = [
-    // { id: 1, date: "2024-01-15 10:30", status: "exitoso", articlesFound: 15, source: "TechNews" },
-    // { id: 2, date: "2024-01-15 09:15", status: "exitoso", articlesFound: 8, source: "Salud Hoy" },
-    // { id: 3, date: "2024-01-14 16:45", status: "fallido", articlesFound: 0, source: "Noticias Económicas" }
-];
+let scrapingHistory = [];
 
 // DOM elements
 const loginScreen = document.getElementById('loginScreen');
@@ -78,10 +34,11 @@ function init() {
     updateNotificationCount();
 }
 
+//done
 async function renderNotifications(filteredNotifications = null) {
     if (filteredNotifications == null){
         try{
-            response = await fetch('/api/get-notifications',
+            response = await fetch(`/api/get-notifications?id=${currentUser.id}`,
                 {
                     method: 'GET',
                     headers: {
@@ -143,10 +100,12 @@ async function renderNotifications(filteredNotifications = null) {
             </div>
         `;
     }).join('');
+    updateNotificationCount();
 }
 
+//done
 function updateNotificationCount() {
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    const unreadCount = notifications.filter(n => !n.Leido).length;
     const badge = document.getElementById('unreadCount');
     if (unreadCount > 0) {
         badge.textContent = unreadCount;
@@ -156,7 +115,8 @@ function updateNotificationCount() {
     }
 }
 
-async function toggleNotificationRead(notificationId) {
+//done
+async function setNotificationRead(notificationId) {
     const notification = notifications.find(n => n.Id === notificationId);
     if (notification) {
 		try{
@@ -174,11 +134,11 @@ async function toggleNotificationRead(notificationId) {
             console.error('error toggling notification read status', error)
         }
         renderNotifications();
-        updateNotificationCount();
-        showNotification(`Notificación marcada como ${notification.Leida ? 'leída' : 'no leída'}`, 'info');
+        showAlert(`Notificación marcada como ${notification.Leida ? 'leída' : 'no leída'}`, 'info');
     }
 }
 
+//done
 async function deleteNotification(notificationId) {
     const index = notifications.findIndex(n => n.Id === notificationId);
     let success = true;
@@ -199,64 +159,77 @@ async function deleteNotification(notificationId) {
         }
         if(success){
             notifications.splice(index, 1);
-            showNotification('Notificación eliminada', 'info');
+            showAlert('Notificación eliminada', 'info');
         }
         renderNotifications();
-        updateNotificationCount();
     }
 }
 
+//done
 function markAllNotificationsRead() {
-    notifications.forEach(n => n.isRead = true);
+    notifications.forEach(n => setNotificationRead(n.Id));
     renderNotifications();
-    updateNotificationCount();
-    showNotification('Todas las notificaciones marcadas como leídas', 'success');
+    showAlert('Todas las notificaciones marcadas como leídas', 'success');
 }
 
+//done
 function clearAllNotifications() {
-    notifications.length = 0;
+    notifications.forEach(n => deleteNotification(n.Id));
     renderNotifications();
-    updateNotificationCount();
-    showNotification('Todas las notificaciones eliminadas', 'info');
+    showAlert('Todas las notificaciones eliminadas', 'info');
 }
 
-function applyNotificationFilters() {
+//done
+async function applyNotificationFilters() {
     const statusFilter = document.getElementById('notificationStatusFilter').value;
     const readFilter = document.getElementById('notificationReadFilter').value;
-
-    let filtered = notifications;
     
-    if (statusFilter) {
-        filtered = filtered.filter(n => n.Tipo == statusFilter);
+    if(!(statusFilter || readFilter)){
+        renderNotifications();
+        return;
     }
-    if (readFilter === 'read') {
-        filtered = filtered.filter(n => n.Leido);
-    } else if (readFilter === 'unread') {
-        filtered = filtered.filter(n => !n.Leido);
+    
+    let filtered = notifications;
+
+    try{
+        var response = await fetch(`/api/get-notifications?id=${currentUser.id}&type=${statusFilter}&read=${readFilter}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+        response = await response.json();
+        filtered = response.notifList;
+    }
+    catch(error){
+        console.error('error filtrando notificaciones', error)
     }
 
     renderNotifications(filtered);
-    showNotification(`${filtered.length} notificaciones encontradas`, 'info');
+    showAlert(`${filtered.length} notificaciones encontradas`, 'info');
 }
 
-function createNotification(title, message, type = 'info', scrapingResultId = null) {
-    const newNotification = {
-        id: notifications.length + 1,
-        title: title,
-        message: message,
-        type: type,
-        date: new Date().toLocaleString('es-ES'),
-        isRead: false,
-        scrapingResultId: scrapingResultId
-    };
+//done
+// function createNotification(title, message, type = 'info', scrapingResultId = null) {
+//     const newNotification = {
+//         id: notifications.length + 1,
+//         title: title,
+//         message: message,
+//         type: type,
+//         date: new Date().toLocaleString('es-ES'),
+//         isRead: false,
+//         scrapingResultId: scrapingResultId
+//     };
     
-    notifications.unshift(newNotification);
-    updateNotificationCount();
+//     notifications.unshift(newNotification);
     
-    // Show toast notification
-    showNotification(title, type);
-}
+//     // Show toast notification
+//     showAlert(title, type);
+// }
 
+//done
 function setupEventListeners() {
     // Auth forms
     loginForm.addEventListener('submit', handleLogin);
@@ -320,53 +293,123 @@ function setupEventListeners() {
     });
 }
 
-function handleLogin(e) {
+// done
+async function handleLogin(e) {
     e.preventDefault();
-    const username = document.getElementById('username').value;
+    const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
+    var userId = -1;
+    try{
+        response = await fetch('/api/login',{
+            method: "POST",
+			headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                Correo: email,
+                Contraseña: password
+            })
+        });
+        userId = await response.json();
+    }
+    catch(error){
+        console.error('error al iniciar sesion', error)
+    }
     
-    // Simulate login
-    if (username && password) {
-        currentUser.username = username;
-        document.getElementById('currentUser').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+    if (userId != -1) {
+        try {
+            response = await fetch(`/api/get-user?id=${userId}`,{
+                method: "GET",
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            let userData = await response.json();
+            currentUser.id = userData.Id;
+            currentUser.nombres = userData.Nombres;
+            currentUser.apellidos = userData.Apellidos;
+            currentUser.correo = userData.Correo;
+        } 
+        catch (error) {
+            console.error('error al obtener datos de usuario', error)
+        }
+        document.getElementById('currentUser').textContent = `${currentUser.nombres}`;
         loginScreen.classList.add('hidden');
         dashboard.classList.remove('hidden');
         updateNotificationCount();
-        showNotification('Sesión iniciada correctamente', 'success');
+        renderArticles();
+        renderSources();
+        renderScrapingHistory();
+        renderNotifications();
+        updateNotificationCount();
+        showAlert('Sesión iniciada correctamente', 'success');
     } else {
-        showNotification('Credenciales inválidas', 'error');
+        showAlert('Credenciales inválidas', 'error');
     }
 }
 
-function handleRegister(e) {
+//done
+async function handleRegister(e) {
     e.preventDefault();
-    const username = document.getElementById('newUsername').value;
+    const names = document.getElementById('newNames').value;
+    const lastNames = document.getElementById('newLastNames').value;
+    const email = document.getElementById('newEmail').value;
     const password = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     
     if (password !== confirmPassword) {
-        showNotification('Las contraseñas no coinciden', 'error');
+        showAlert('Las contraseñas no coinciden', 'error');
         return;
     }
+    let success = false;
     
-    // Simulate registration
-    showNotification('Cuenta creada exitosamente', 'success');
-    registerScreen.classList.add('hidden');
-    loginScreen.classList.remove('hidden');
+    try {
+        const response = await fetch('/api/register-user', {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                Nombres: names,
+                Apellidos : lastNames,
+                Correo: email,
+                Contraseña: password
+            })
+        });
+        success = response.json();
+
+    } catch (error) {
+        console.error('error al registrar usuario', error)
+    }
+
+    if(success){
+        showAlert('Cuenta creada exitosamente', 'success');
+        registerScreen.classList.add('hidden');
+        loginScreen.classList.remove('hidden');
+    }
+    else{
+        showAlert('Usuario no se pudo crear', 'error');
+    }
 }
 
+//done
 function logout() {
-    currentUser = null;
+    currentUser.id = -1;
+    currentUser.apellidos = "";
+    currentUser.nombres = "";
+    currentUser.email = "";
     dashboard.classList.add('hidden');
     loginScreen.classList.remove('hidden');
     document.getElementById('userMenu').classList.add('hidden');
-    showNotification('Sesión cerrada', 'info');
+    showAlert('Sesión cerrada', 'info');
 }
 
+//done
 function toggleUserMenu() {
     document.getElementById('userMenu').classList.toggle('hidden');
 }
 
+//done
 function switchTab(tabName) {
     // Update tab buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -390,8 +433,23 @@ function switchTab(tabName) {
     }
 }
 
-function renderArticles(filteredArticles = null) {
-    const articlesToRender = filteredArticles || articles.filter(a => !a.isDiscarded);
+//done
+async function renderArticles(filteredArticles = null) {
+    try {
+        response = await fetch(`/api/get-articles?id=${currentUser.id}`,{
+            method: "GET",
+			headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        let articleDetail = await response.json();
+        articleDetail.forEach(a => a.Article.isDiscarded = false);
+        articleDetail.forEach(a => a.Article.Tema = a.Article.Tema.split(/[,]+/).filter(Boolean))
+        articles = articleDetail;
+    } catch (error) {
+        console.error('error al mostrar articulos', error)
+    }
+    const articlesToRender = filteredArticles || articles.filter(a => !a.Article.isDiscarded);
     const container = document.getElementById('articlesList');
     
     if (articlesToRender.length === 0) {
@@ -399,34 +457,34 @@ function renderArticles(filteredArticles = null) {
         return;
     }
 
-    container.innerHTML = articlesToRender.map(article => `
+    container.innerHTML = articlesToRender.map(a => `
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 fade-in">
             <div class="flex justify-between items-start mb-3">
                 <div class="flex-1">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600" onclick="showArticleDetail(${article.id})">${article.title}</h3>
-                    <p class="text-gray-600 text-sm mb-3">${article.content.substring(0, 150)}...</p>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600" onclick="showArticleDetail(${a.Article.Id})">${a.Article.Titular}</h3>
+                    <p class="text-gray-600 text-sm mb-3">${a.Article.Cuerpo.substring(0, 150)}...</p>
                     <div class="flex items-center space-x-4 text-sm text-gray-500">
-                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${article.source}</span>
-                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">${article.category}</span>
-                        <span>${article.date}</span>
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${a.Source.Nombre}</span>
+                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">${a.Source.Tipo}</span>
+                        <span>${a.Article.Fecha}</span>
                     </div>
                     <div class="mt-2">
                         <div class="flex flex-wrap gap-1">
-                            ${article.keywords.map(keyword => `<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">${keyword}</span>`).join('')}
+                            ${a.Article.Tema.map(keyword => `<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">${keyword}</span>`).join('')}
                         </div>
                     </div>
                 </div>
                 <div class="flex flex-col space-y-2 ml-4">
-                    <button onclick="showArticleDetail(${article.id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500" title="Ver artículo completo">
+                    <button onclick="showArticleDetail(${a.Article.id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500" title="Ver artículo completo">
                         👁️
                     </button>
-                    <button onclick="openArticleLink(${article.id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-green-500" title="Abrir enlace">
+                    <button onclick="openArticleLink(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-green-500" title="Abrir enlace">
                         🔗
                     </button>
-                    <button onclick="toggleFavorite(${article.id})" class="p-2 rounded-lg hover:bg-gray-100 ${article.isFavorite ? 'text-red-500' : 'text-gray-400'}" title="Favorito">
-                        ${article.isFavorite ? '❤️' : '🤍'}
+                    <button onclick="toggleFavorite(${a.Article.id})" class="p-2 rounded-lg hover:bg-gray-100 ${a.Favorito ? 'text-red-500' : 'text-gray-400'}" title="Favorito">
+                        ${a.isFavorite ? '❤️' : '🤍'}
                     </button>
-                    <button onclick="discardArticle(${article.id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Descartar">
+                    <button onclick="discardArticle(${a.Article.id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Descartar">
                         🗑️
                     </button>
                 </div>
@@ -434,9 +492,9 @@ function renderArticles(filteredArticles = null) {
         </div>
     `).join('');
 }
-
+//done
 function renderFavorites() {
-    const favorites = articles.filter(a => a.isFavorite && !a.isDiscarded);
+    const favorites = articles.filter(a => a.Article.isFavorite && !a.Article.isDiscarded);
     const container = document.getElementById('favoritesList');
     
     if (favorites.length === 0) {
@@ -444,18 +502,18 @@ function renderFavorites() {
         return;
     }
 
-    container.innerHTML = favorites.map(article => `
+    container.innerHTML = favorites.map(a => `
         <div class="bg-gray-50 rounded-lg p-4 fade-in">
             <div class="flex justify-between items-start">
                 <div class="flex-1">
-                    <h4 class="font-medium text-gray-900 mb-1">${article.title}</h4>
+                    <h4 class="font-medium text-gray-900 mb-1">${a.Article.title}</h4>
                     <div class="flex items-center space-x-2 text-sm text-gray-500">
-                        <span>${article.source}</span>
+                        <span>${a.Source.Url}</span>
                         <span>•</span>
-                        <span>${article.date}</span>
+                        <span>${a.Article.Fecha}</span>
                     </div>
                 </div>
-                <button onclick="toggleFavorite(${article.id})" class="p-1 text-red-500 hover:text-red-700">
+                <button onclick="toggleFavorite(${a.Article.Id})" class="p-1 text-red-500 hover:text-red-700">
                     ❤️
                 </button>
             </div>
@@ -463,6 +521,7 @@ function renderFavorites() {
     `).join('');
 }
 
+//done
 function renderSources() {
     const container = document.getElementById('sourcesList');
     // Sort sources alphabetically by name
@@ -527,13 +586,23 @@ function updateStats() {
     }
 }
 
-function toggleFavorite(articleId) {
-    const article = articles.find(a => a.id === articleId);
+async function toggleFavorite(articleId) {
+    const article = articles.find(a => a.Article.Id === articleId);
     if (article) {
-        article.isFavorite = !article.isFavorite;
+        try {
+            response = await fetch(`/api/update-article-fav`,{
+                method: "PATCH",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body : JSON.stringify(articleId)
+            });
+        } catch (error) {
+            console.error('error al asignar valor de favorito', error)
+        }
         renderArticles();
         renderFavorites();
-        showNotification(article.isFavorite ? 'Agregado a favoritos' : 'Removido de favoritos', 'info');
+        showAlert(article.Article.isFavorite ? 'Agregado a favoritos' : 'Removido de favoritos', 'info');
     }
 }
 
@@ -543,7 +612,7 @@ function discardArticle(articleId) {
         article.isDiscarded = true;
         renderArticles();
         updateStats();
-        showNotification('Artículo descartado', 'info');
+        showAlert('Artículo descartado', 'info');
     }
 }
 
@@ -577,7 +646,7 @@ function applyFilters() {
     }
 
     renderArticles(filtered);
-    showNotification(`${filtered.length} artículos encontrados`, 'info');
+    showAlert(`${filtered.length} artículos encontrados`, 'info');
 }
 
 function clearFilters() {
@@ -588,7 +657,7 @@ function clearFilters() {
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
     renderArticles();
-    showNotification('Filtros limpiados', 'info');
+    showAlert('Filtros limpiados', 'info');
 }
 
 function addSource(e) {
@@ -608,7 +677,7 @@ function addSource(e) {
     populateSourceFilters();
     updateStats();
     document.getElementById('addSourceForm').reset();
-    showNotification('Fuente agregada exitosamente', 'success');
+    showAlert('Fuente agregada exitosamente', 'success');
 }
 
 function toggleSource(sourceId) {
@@ -617,7 +686,7 @@ function toggleSource(sourceId) {
         source.active = !source.active;
         renderSources();
         updateStats();
-        showNotification(`Fuente ${source.active ? 'activada' : 'desactivada'}`, 'info');
+        showAlert(`Fuente ${source.active ? 'activada' : 'desactivada'}`, 'info');
     }
 }
 
@@ -628,7 +697,7 @@ function removeSource(sourceId) {
         renderSources();
         populateSourceFilters();
         updateStats();
-        showNotification('Fuente eliminada', 'info');
+        showAlert('Fuente eliminada', 'info');
     }
 }
 
@@ -641,7 +710,7 @@ async function startScraping() {
     status.textContent = 'Extrayendo artículos...';
     
     // Create notification for scraping start
-    createNotification('Scraping iniciado', 'Proceso de extracción de artículos en curso...', 'info');
+    showAlert('Scraping iniciado, Proceso de extracción de artículos en curso...', 'info');
     let isSuccess = true;
     
     let responseObj = Object();
@@ -665,7 +734,7 @@ async function startScraping() {
     
     // Simulate scraping process
     setTimeout(() => {
-        // const scrapingResult = responseObj.result;
+        const scrapingResult = responseObj.result;
         // const newEntry = {
         //     id: scrapingResult.Id,
         //     date: scrapingResult.FechaExtraccion,
@@ -674,7 +743,7 @@ async function startScraping() {
         //     source: 'Múltiples fuentes'
         // };
         
-        scrapingHistory.unshift(newEntry);
+        // scrapingHistory.unshift(newEntry);
         
         if (isSuccess) {
             // Add new articles to simulate scraping results
@@ -695,9 +764,8 @@ async function startScraping() {
             showArticleReviewModal(newArticleIds);
             
             // Create completion notification
-            createNotification('Scraping completado', 
-                `${newArticlesCount} nuevos artículos encontrados. Revísalos para decidir cuáles conservar.`, 
-                'success', newEntry.id);
+            showAlert(`Scraping completado ${newArticleIds.length} nuevos artículos encontrados. Revísalos para decidir cuáles conservar.`,
+                'success');
 
         } else {
             renderScrapingHistory();
@@ -707,7 +775,7 @@ async function startScraping() {
             button.textContent = '🚀 Iniciar Scraping';
             status.textContent = 'Listo para iniciar';
             
-            createNotification('Error en scraping', 'No se pudieron extraer artículos de las fuentes', 'error', newEntry.id);
+            showAlert('Error en scraping, No se pudieron extraer artículos de las fuentes', 'error');
         }
     }, 3000);
 }
@@ -718,17 +786,17 @@ function addNewScrapedArticles(articleList, sourceList) {
         const article = articleList[i];
         const source = sourceList[i];
         const newArticle = {
-            id: article.Id,
-            keywords: article.Tema.split(/[,]+/).filter(Boolean),
-            title: article.Titular,
-            content: article.Cuerpo,
-            date: article.Fecha,
-            isFavorite: article.Favorito,
-            scrapingResultId: article.IdResultado,
+            Id: article.Id,
+            Tema: article.Tema.split(/[,]+/).filter(Boolean),
+            Titular: article.Titular,
+            Cuerpo: article.Cuerpo,
+            Fecha: article.Fecha,
+            Favorito: article.Favorito,
+            IdResultado: article.IdResultado,
 
-            category: source.Tipo,
-            source: source.Nombre,
-            url: source.Url,
+            Tipo: source.Tipo,
+            Nombre: source.Nombre,
+            Url: source.Url,
             isDiscarded: false,
             isNew: true
         };
@@ -825,7 +893,7 @@ function keepArticleFromReview(articleId) {
             articleElement.style.backgroundColor = '#f0fdf4';
             articleElement.style.borderColor = '#22c55e';
         }
-        showNotification('Artículo conservado', 'success');
+        showAlert('Artículo conservado', 'success');
     }
 }
 
@@ -840,7 +908,7 @@ function discardArticleFromReview(articleId) {
             articleElement.style.borderColor = '#ef4444';
             articleElement.style.opacity = '0.6';
         }
-        showNotification('Artículo descartado', 'info');
+        showAlert('Artículo descartado', 'info');
     }
 }
 
@@ -856,7 +924,7 @@ function keepAllFromReview(articleIds) {
             }
         }
     });
-    showNotification('Todos los artículos conservados', 'success');
+    showAlert('Todos los artículos conservados', 'success');
 }
 
 function discardAllFromReview(articleIds) {
@@ -873,7 +941,7 @@ function discardAllFromReview(articleIds) {
             }
         }
     });
-    showNotification('Todos los artículos descartados', 'info');
+    showAlert('Todos los artículos descartados', 'info');
 }
 
 function closeArticleReviewModal() {
@@ -886,8 +954,8 @@ function closeArticleReviewModal() {
         const keptCount = articles.filter(a => !a.isDiscarded && !a.isNew).length - articles.filter(a => !a.isDiscarded && !a.isNew && !a.scrapingResultId).length;
         const discardedCount = articles.filter(a => a.isDiscarded && a.scrapingResultId === scrapingHistory[0]?.id).length;
         
-        createNotification('Revisión completada', 
-            `Artículos procesados: ${keptCount} conservados, ${discardedCount} descartados`, 
+        showAlert(`Revisión completada
+            Artículos procesados: ${keptCount} conservados, ${discardedCount} descartados`, 
             'info');
     }
 }
@@ -900,7 +968,7 @@ function clearOldLogs() {
     // Also clear related notifications
     const removedLogs = oldLogsCount - scrapingHistory.length;
     if (removedLogs > 0) {
-        showNotification(`${removedLogs} logs antiguos eliminados`, 'info');
+        showAlert(`${removedLogs} logs antiguos eliminados`, 'info');
     }
 }
 
@@ -926,7 +994,7 @@ function saveProfile(e) {
     const emailExists = newEmail !== currentUser.email && Math.random() < 0.1; // 10% chance of duplicate
     
     if (emailExists) {
-        showNotification('Este correo ya está en uso', 'error');
+        showAlert('Este correo ya está en uso', 'error');
         return;
     }
     
@@ -937,7 +1005,7 @@ function saveProfile(e) {
     document.getElementById('currentUser').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
     
     hideEditProfileModal();
-    showNotification('Perfil actualizado exitosamente', 'success');
+    showAlert('Perfil actualizado exitosamente', 'success');
 }
 
 function showArticleDetail(articleId) {
@@ -980,9 +1048,9 @@ function openArticleLinkFromModal() {
     const article = articles.find(a => a.id == articleId);
     if (article && article.url) {
         window.open(article.url, '_blank', 'noopener,noreferrer');
-        showNotification('Abriendo enlace del artículo', 'info');
+        showAlert('Abriendo enlace del artículo', 'info');
     } else {
-        showNotification('Enlace no disponible', 'error');
+        showAlert('Enlace no disponible', 'error');
     }
 }
 
@@ -990,9 +1058,9 @@ function openArticleLink(articleId) {
     const article = articles.find(a => a.id === articleId);
     if (article && article.url) {
         window.open(article.url, '_blank', 'noopener,noreferrer');
-        showNotification('Abriendo enlace del artículo', 'info');
+        showAlert('Abriendo enlace del artículo', 'info');
     } else {
-        showNotification('Enlace no disponible', 'error');
+        showAlert('Enlace no disponible', 'error');
     }
 }
 
@@ -1024,7 +1092,7 @@ function discardArticle(articleId) {
         
         renderArticles();
         updateStats();
-        showNotification('Artículo descartado', 'info');
+        showAlert('Artículo descartado', 'info');
     }
 }
 
@@ -1044,7 +1112,7 @@ function removeSource(sourceId) {
         populateSourceFilters();
         renderArticles();
         updateStats();
-        showNotification('Fuente y artículos asociados eliminados', 'info');
+        showAlert('Fuente y artículos asociados eliminados', 'info');
     }
 }
 
@@ -1056,7 +1124,7 @@ function deleteAccount() {
     sources.length = 0;
     
     hideDeleteAccountModal();
-    showNotification('Cuenta y todos los datos asociados eliminados', 'info');
+    showAlert('Cuenta y todos los datos asociados eliminados', 'info');
     logout();
 }
 
@@ -1073,7 +1141,7 @@ function changePassword(e) {
     e.preventDefault();
     // Simulate password change
     hideChangePasswordModal();
-    showNotification('Contraseña actualizada exitosamente', 'success');
+    showAlert('Contraseña actualizada exitosamente', 'success');
     document.getElementById('changePasswordForm').reset();
 }
 
@@ -1089,7 +1157,7 @@ function hideDeleteAccountModal() {
 function deleteAccount() {
     // Simulate account deletion
     hideDeleteAccountModal();
-    showNotification('Cuenta eliminada exitosamente', 'info');
+    showAlert('Cuenta eliminada exitosamente', 'info');
     logout();
 }
 
@@ -1100,7 +1168,7 @@ function hideAllModals() {
     document.getElementById('articleDetailModal').classList.add('hidden');
 }
 
-function showNotification(message, type = 'info') {
+function showAlert(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification bg-white border-l-4 p-4 rounded-lg shadow-lg max-w-sm ${
         type === 'success' ? 'border-green-500' : 

@@ -29,7 +29,7 @@ class Server
     public Server(string[] prefixes)
     {
         _listener = new HttpListener();
-        foreach(var prefix in prefixes)
+        foreach (var prefix in prefixes)
         {
             _listener.Prefixes.Add(prefix);
         }
@@ -49,12 +49,12 @@ class Server
             Console.ForegroundColor = ConsoleColor.White;
         }
     }
-    
+
     public async Task Start()
     {
         _listener.Start();
         Console.WriteLine($"listening on: ");
-        foreach(var prefix in _listener.Prefixes)
+        foreach (var prefix in _listener.Prefixes)
         {
             Console.WriteLine($"{prefix}");
         }
@@ -67,7 +67,7 @@ class Server
                 await ProcessRequest(context);
             }
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Console.WriteLine(e.Message);
             _listener.Stop();
@@ -78,7 +78,7 @@ class Server
     {
         HttpListenerRequest request = context.Request;
         HttpListenerResponse response = context.Response;
-        Console.WriteLine($"{request.HttpMethod} request to {request.Url.AbsolutePath}");
+        Console.WriteLine($"{request.HttpMethod} request to {request.Url.AbsoluteUri}");
 
         if (request.HttpMethod == "POST")
         {
@@ -87,13 +87,45 @@ class Server
                 await StartScraping(context);
                 return;
             }
+            else if (request.Url.AbsolutePath == "/api/login")
+            {
+                ValidateLoginCredentials(context);
+                return;
+            }
+            else if (request.Url.AbsolutePath == "/api/register-user")
+            {
+                RegisterUser(context);
+                return;
+            }
         }
         else if (request.HttpMethod == "GET")
         {
             if (request.Url.AbsolutePath == "/api/get-notifications")
             {
-                GetNotifications(context);
+                var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+                if (parsedUrl.Count == 1)
+                {
+                    GetNotifications(context);
+                }
+                else
+                {
+                    FilterNotifications(context);
+                }
                 return;
+            }
+            else if (request.Url.AbsolutePath == "/api/get-user")
+            {
+                GetUser(context);
+                return;
+            }
+            else if (request.Url.AbsolutePath == "/api/get-articles")
+            {
+                var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+                if (parsedUrl.Count == 1)
+                {
+                    GetArticles(context);
+                    return;
+                }
             }
         }
         else if (request.HttpMethod == "PATCH")
@@ -103,14 +135,17 @@ class Server
                 UpdateNotificationRead(context);
                 return;
             }
+            else if (request.Url.AbsolutePath == "/api/update-article-fav")
+            {
+                UpdateArticleFavorite(context);
+                return;
+            }
         }
         else if (request.HttpMethod == "DELETE")
         {
             if (request.Url.AbsolutePath.Contains("/api/delete-notif"))
             {
-                var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
-                var id = Convert.ToInt32(parsedUrl["id"]);
-                Console.WriteLine($"DELETING NOTIF WITH ID {id}");
+                DeleteNotification(context);
                 return;
             }
         }
@@ -126,6 +161,128 @@ class Server
             Console.WriteLine($"file does not exist {path}");
         }
     }
+    
+    private void UpdateArticleFavorite(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        if (request.HasEntityBody)
+        {
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+
+            var articleId = JsonSerializer.Deserialize<int>(body);
+            _repository.(articleId);
+            byte[] buffer = Encoding.UTF8.GetBytes("");
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+        }
+    }
+    private void GetArticles(HttpListenerContext context)
+    {
+        var response = context.Response;
+        var request = context.Request;
+
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+        var articles = _repository.GetArticlesAndSources(id);
+        string json = JsonSerializer.Serialize(articles);
+        byte[] buffer = Encoding.UTF8.GetBytes(json);
+        response.ContentLength64 = buffer.Length;
+        response.ContentType = GetContentType(".json");
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
+    }
+    private void RegisterUser(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        if (request.HasEntityBody)
+        {
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+            var newUser = JsonSerializer.Deserialize<Usuario>(body);
+            var success = _repository.RegisterUser(newUser);
+
+            var json = JsonSerializer.Serialize(success);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+        }
+    }
+    private void GetUser(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        var id = Convert.ToInt32(parsedUrl["id"]);
+        var user = _repository.GetUser(id);
+        var json = JsonSerializer.Serialize(user);
+        byte[] buffer = Encoding.UTF8.GetBytes(json);
+        response.ContentLength64 = buffer.Length;
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
+    }
+    
+    private void ValidateLoginCredentials(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        if (request.HasEntityBody)
+        {
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+            var credenciales = JsonSerializer.Deserialize<Credenciales>(body);
+            Console.WriteLine(credenciales.Correo + credenciales.Contraseña);
+            var idUsuario = _repository.ValidateLogin(credenciales.Correo, credenciales.Contraseña);
+
+            var json = JsonSerializer.Serialize(idUsuario);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+        }
+    }
+    
+    private void FilterNotifications(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        int? tipo = string.IsNullOrEmpty(parsedUrl["type"]) ? null : Convert.ToInt32(parsedUrl["type"]);
+        bool? leido = string.IsNullOrEmpty(parsedUrl["read"]) ? null : Convert.ToInt32(parsedUrl["read"]) > 0;
+        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+        var notifications = _repository.FilterNotifications(id,tipo, leido);
+        var responseObj = new
+        {
+            notifList = notifications
+        };
+
+        string json = JsonSerializer.Serialize(responseObj);
+        byte[] buffer = Encoding.UTF8.GetBytes(json);
+        response.ContentLength64 = buffer.Length;
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
+    }
+    private void DeleteNotification(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        var id = Convert.ToInt32(parsedUrl["id"]);
+        Console.WriteLine($"DELETING NOTIF WITH ID {id}");
+        _repository.DeleteNotification(id);
+        byte[] buffer = Encoding.UTF8.GetBytes("");
+        response.ContentLength64 = buffer.Length;
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
+    }
     private void UpdateNotificationRead(HttpListenerContext context)
     {
         var request = context.Request;
@@ -137,17 +294,21 @@ class Server
             string body = reader.ReadToEnd();
             var notifId = JsonSerializer.Deserialize<int>(body);
             _repository.UpdateReadNotification(notifId);
-			byte[] buffer = Encoding.UTF8.GetBytes("");
-			response.ContentLength64 = buffer.Length;
-			response.OutputStream.Write(buffer, 0, buffer.Length);
+            byte[] buffer = Encoding.UTF8.GetBytes("");
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
             response.OutputStream.Close();
         }
     }
-    
+
     private void GetNotifications(HttpListenerContext context)
     {
         var response = context.Response;
-        var notifications = _repository.GetNotifications();
+        var request = context.Request;
+
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+        var notifications = _repository.GetNotifications(id);
         var responseObj = new
         {
             notifList = notifications
@@ -173,7 +334,7 @@ class Server
             var sources = JsonSerializer.Deserialize<List<string>>(body) ?? [];
 
             var scrapedData = new List<(Articulo article, Fuente source)>();
-            foreach(var source in sources)
+            foreach (var source in sources)
             {
                 var scrapedArticles = await _crawler.Crawl(source, _repository);
                 scrapedData.AddRange(scrapedArticles);
@@ -209,7 +370,7 @@ class Server
         relPath = relPath.Replace("..", "");
         return Path.Combine(_WebDirPath, relPath);
     }
-    
+
     private void ServeFile(string filePath, HttpListenerResponse response)
     {
         byte[] fileBytes = File.ReadAllBytes(filePath);
@@ -239,12 +400,12 @@ class Server
         };
 
         // Look up the content type, or use default if not found
-        return contentTypes.TryGetValue(fileExtension, out string contentType) 
-            ? contentType 
+        return contentTypes.TryGetValue(fileExtension, out string contentType)
+            ? contentType
             : "application/octet-stream"; // Default: treat as binary file
     }
 
-	private readonly HttpListener _listener;
+    private readonly HttpListener _listener;
     private readonly Crawler _crawler;
     private readonly Repository _repository;
     private const string _WebDirPath = "../../../../Interfaz web/";

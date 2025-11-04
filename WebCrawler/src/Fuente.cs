@@ -1,5 +1,12 @@
 class Fuente
 {
+    public Fuente(int id, string url, string tipo, string nombre)
+    {
+        Id = id;
+        Url = url;
+        Tipo = tipo;
+        Nombre = nombre;
+    }
     public Fuente(string url, string tipo, string nombre)
     {
         Url = url;
