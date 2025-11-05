@@ -652,15 +652,15 @@ async function toggleFavorite(articleId) {
     }
 }
 
-function discardArticle(articleId) {
-    const article = articles.find(a => a.Article.id === articleId);
-    if (article) {
-        article.isDiscarded = true;
-        renderArticles();
-        updateStats();
-        showAlert('Artículo descartado', 'info');
-    }
-}
+// function discardArticle(articleId) {
+//     const article = articles.find(a => a.Article.id === articleId);
+//     if (article) {
+//         article.isDiscarded = true;
+//         renderArticles();
+//         updateStats();
+//         showAlert('Artículo descartado', 'info');
+//     }
+// }
 
 function applyFilters() {
     const titleFilter = document.getElementById('titleFilter').value.toLowerCase();
@@ -936,6 +936,7 @@ function keepArticleFromReview(articleId) {
     }
 }
 
+//done
 function discardArticleFromReview(articleId) {
     const a = articles.find(a => a.Article.Id === articleId);
     if (a) {
@@ -950,6 +951,7 @@ function discardArticleFromReview(articleId) {
     }
 }
 
+//done
 function keepAllFromReview(articleIds) {
     articleIds.forEach(id => {
         keepArticleFromReview(id)
@@ -957,6 +959,7 @@ function keepAllFromReview(articleIds) {
     showAlert('Todos los artículos conservados', 'success');
 }
 
+//done
 function discardAllFromReview(articleIds) {
     articleIds.forEach(id => {
         discardArticleFromReview(id)
@@ -964,6 +967,7 @@ function discardAllFromReview(articleIds) {
     showAlert('Todos los artículos descartados', 'info');
 }
 
+//done
 async function closeArticleReviewModal() {
     const modal = document.getElementById('articleReviewModal');
     if (modal) {
@@ -1124,23 +1128,27 @@ function toggleArticleFavoriteFromModal() {
     favoriteBtn.innerHTML = a.Article.Favorito ? '❤️ Quitar de Favoritos' : '🤍 Agregar a Favoritos';
 }
 
-function discardArticle(articleId) {
+async function discardArticle(articleId) {
     const a = articles.find(a => a.Article.Id === articleId);
     if (a) {
-        a.isDiscarded = true;
-        
-        // Remove associated source if no other articles use it
-        const sourceInUse = articles.some(a => a.source === a.source && !a.isDiscarded && a.id !== articleId);
-        if (!sourceInUse) {
-            const sourceIndex = sources.findIndex(s => s.name === a.source);
-            if (sourceIndex !== -1) {
-                sources.splice(sourceIndex, 1);
-                populateSourceFilters();
-                renderSources();
-            }
+        try {
+            response = await fetch(`/api/discard-articles?id=${currentUser.id}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify([articleId])
+                }
+            );
         }
+        catch(error){
+            console.error('error al descartar articulo', error)
+        }
+
         
         renderArticles();
+        renderFavorites()
         updateStats();
         showAlert('Artículo descartado', 'info');
     }

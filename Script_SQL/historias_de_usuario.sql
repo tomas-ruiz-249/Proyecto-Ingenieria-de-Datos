@@ -58,7 +58,6 @@ BEGIN
 	THEN
 		SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Este Articulo ya existe para este usuario';
-    ELSE
 		INSERT INTO ArticulosUsuario (idUsuarioFK, idArticulo, descartado, favorito)
 		VALUES (v_idUsuario, p_idArticulo, false, p_favorito);
     END IF;
