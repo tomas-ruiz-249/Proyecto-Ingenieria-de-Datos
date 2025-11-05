@@ -118,6 +118,62 @@ class Repository
         }
         return success;
     }
+    public bool DiscardArticles(int userId, List<int> discardIds)
+    {
+        var success = false;
+        try
+        {
+            foreach(var id in discardIds)
+            {
+                var procedure = "eliminarArticulo";
+                var cmd = new MySqlCommand(procedure, Connection);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("p_id_usuario", userId);
+                cmd.Parameters.AddWithValue("p_id_articulo", id);
+                var rowsAffected = cmd.ExecuteNonQuery();
+            }
+            success = true;
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+
+        }
+        return success;
+    }
+    public List<Result> GetResults(int userId)
+    {
+        var resultList = new List<Result>();
+        try
+        {
+            var procedure = "VisualizarResultadoExtraccion";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("idUsuarioP", userId);
+            var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                var id = rdr.GetInt32("id");
+                var idUsuario = rdr.GetInt32("idUsuarioFK");
+                var estado = rdr.GetInt32("estado");
+                var fecha = rdr.GetDateTime("fechaExtraccion").ToString();
+                var cantidad = rdr.GetInt32("cantidad");
+                var result = new Result(id, idUsuario, estado, fecha);
+                result.Cantidad = cantidad;
+                resultList.Add(result);
+            }
+            rdr.Close();
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        return resultList;
+    }
     public bool ToggleArticleFavorite(int articleId)
     {
         var success = false;
@@ -127,7 +183,16 @@ class Repository
             var cmd = new MySqlCommand(procedure, Connection);
             cmd.CommandType = CommandType.StoredProcedure;
             cmd.Parameters.AddWithValue("p_id_articulo", articleId);
+            var rowsAffected = cmd.ExecuteNonQuery();
+            success = true;
         }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        return success;
     }
     public List<ArticleSource> GetArticlesAndSources(int userId)
     {
@@ -147,9 +212,9 @@ class Repository
                 var subtitulo = rdr.GetString("subtitulo");
                 var cuerpo = rdr.GetString("cuerpo");
                 var favorito = rdr.GetBoolean("favorito");
-				string fecha = rdr["fecha"] == DBNull.Value 
-					? string.Empty 
-					: rdr.GetDateTime("fecha").ToString();
+                string fecha = rdr["fecha"] == DBNull.Value
+                    ? string.Empty
+                    : rdr.GetDateTime("fecha").ToString();
                 var idResultado = rdr.GetInt32("idResultadoFK");
                 var articulo = new Articulo(id, tema, titular, subtitulo, cuerpo, fecha, idResultado, favorito);
 
@@ -243,7 +308,7 @@ class Repository
 
             id = (int)cmd.Parameters["xidUsuario"].Value!;
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine(e.Message);
@@ -251,7 +316,7 @@ class Repository
         }
         return id;
     }
-    
+
     public List<Notificacion> FilterNotifications(int idUsuario, int? tipo, bool? leido)
     {
         var notifications = new List<Notificacion>();
@@ -335,7 +400,7 @@ class Repository
             Console.ForegroundColor = ConsoleColor.White;
         }
     }
-    
+
     public void DeleteNotification(int notifId)
     {
         try
@@ -346,7 +411,7 @@ class Repository
             cmd.Parameters.AddWithValue("p_id_notificacion", notifId);
             var rowsAffected = cmd.ExecuteNonQuery();
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine(e.Message);
@@ -379,7 +444,7 @@ class Repository
         }
         return -1;
     }
-    
+
     public Result? GetLastResult(int id)
     {
         Result result = default;
@@ -397,7 +462,7 @@ class Repository
                     reader.GetInt32("id"),
                     reader.GetInt32("idUsuarioFK"),
                     reader.GetInt32("estado"),
-                    reader.GetDateTime("fechaExtraccion")
+                    reader.GetDateTime("fechaExtraccion").ToString()
                 );
             }
             reader.Close();

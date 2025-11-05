@@ -116,7 +116,7 @@ function updateNotificationCount() {
 }
 
 //done
-async function setNotificationRead(notificationId) {
+async function toggleNotificationRead(notificationId) {
     const notification = notifications.find(n => n.Id === notificationId);
     if (notification) {
 		try{
@@ -167,7 +167,11 @@ async function deleteNotification(notificationId) {
 
 //done
 function markAllNotificationsRead() {
-    notifications.forEach(n => setNotificationRead(n.Id));
+    notifications.forEach(n => {
+        if(!n.Leido){
+            toggleNotificationRead(n.Id);
+        }
+    });
     renderNotifications();
     showAlert('Todas las notificaciones marcadas como leídas', 'success');
 }
@@ -342,6 +346,7 @@ async function handleLogin(e) {
         renderScrapingHistory();
         renderNotifications();
         updateNotificationCount();
+        updateStats();
         showAlert('Sesión iniciada correctamente', 'success');
     } else {
         showAlert('Credenciales inválidas', 'error');
@@ -444,12 +449,13 @@ async function renderArticles(filteredArticles = null) {
         });
         let articleDetail = await response.json();
         articleDetail.forEach(a => a.Article.isDiscarded = false);
+        articleDetail.forEach(a => a.Article.isNew = false);
         articleDetail.forEach(a => a.Article.Tema = a.Article.Tema.split(/[,]+/).filter(Boolean))
         articles = articleDetail;
     } catch (error) {
         console.error('error al mostrar articulos', error)
     }
-    const articlesToRender = filteredArticles || articles.filter(a => !a.Article.isDiscarded);
+    const articlesToRender = filteredArticles || articles.filter(a => !a.isDiscarded);
     const container = document.getElementById('articlesList');
     
     if (articlesToRender.length === 0) {
@@ -475,26 +481,27 @@ async function renderArticles(filteredArticles = null) {
                     </div>
                 </div>
                 <div class="flex flex-col space-y-2 ml-4">
-                    <button onclick="showArticleDetail(${a.Article.id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500" title="Ver artículo completo">
+                    <button onclick="showArticleDetail(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500" title="Ver artículo completo">
                         👁️
                     </button>
                     <button onclick="openArticleLink(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-green-500" title="Abrir enlace">
                         🔗
                     </button>
-                    <button onclick="toggleFavorite(${a.Article.id})" class="p-2 rounded-lg hover:bg-gray-100 ${a.Favorito ? 'text-red-500' : 'text-gray-400'}" title="Favorito">
-                        ${a.isFavorite ? '❤️' : '🤍'}
+                    <button onclick="toggleFavorite(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 ${a.Article.Favorito ? 'text-red-500' : 'text-gray-400'}" title="Favorito">
+                        ${a.Article.Favorito ? '❤️' : '🤍'}
                     </button>
-                    <button onclick="discardArticle(${a.Article.id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Descartar">
+                    <button onclick="discardArticle(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Descartar">
                         🗑️
                     </button>
                 </div>
             </div>
         </div>
     `).join('');
+    updateStats();
 }
 //done
 function renderFavorites() {
-    const favorites = articles.filter(a => a.Article.isFavorite && !a.Article.isDiscarded);
+    const favorites = articles.filter(a => a.Article.Favorito);
     const container = document.getElementById('favoritesList');
     
     if (favorites.length === 0) {
@@ -503,19 +510,36 @@ function renderFavorites() {
     }
 
     container.innerHTML = favorites.map(a => `
-        <div class="bg-gray-50 rounded-lg p-4 fade-in">
-            <div class="flex justify-between items-start">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 fade-in">
+            <div class="flex justify-between items-start mb-3">
                 <div class="flex-1">
-                    <h4 class="font-medium text-gray-900 mb-1">${a.Article.title}</h4>
-                    <div class="flex items-center space-x-2 text-sm text-gray-500">
-                        <span>${a.Source.Url}</span>
-                        <span>•</span>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600" onclick="showArticleDetail(${a.Article.Id})">${a.Article.Titular}</h3>
+                    <p class="text-gray-600 text-sm mb-3">${a.Article.Cuerpo.substring(0, 150)}...</p>
+                    <div class="flex items-center space-x-4 text-sm text-gray-500">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${a.Source.Nombre}</span>
+                        <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">${a.Source.Tipo}</span>
                         <span>${a.Article.Fecha}</span>
                     </div>
+                    <div class="mt-2">
+                        <div class="flex flex-wrap gap-1">
+                            ${a.Article.Tema.map(keyword => `<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">${keyword}</span>`).join('')}
+                        </div>
+                    </div>
                 </div>
-                <button onclick="toggleFavorite(${a.Article.Id})" class="p-1 text-red-500 hover:text-red-700">
-                    ❤️
-                </button>
+                <div class="flex flex-col space-y-2 ml-4">
+                    <button onclick="showArticleDetail(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500" title="Ver artículo completo">
+                        👁️
+                    </button>
+                    <button onclick="openArticleLink(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-green-500" title="Abrir enlace">
+                        🔗
+                    </button>
+                    <button onclick="toggleFavorite(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 ${a.Article.Favorito ? 'text-red-500' : 'text-gray-400'}" title="Favorito">
+                        ${a.Article.Favorito ? '❤️' : '🤍'}
+                    </button>
+                    <button onclick="discardArticle(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Descartar">
+                        🗑️
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -548,20 +572,34 @@ function renderSources() {
     `).join('');
 }
 
-function renderScrapingHistory() {
+//done
+async function renderScrapingHistory() {
     const container = document.getElementById('scrapingHistory');
+    try{
+        var response = await fetch(`/api/get-results?id=${currentUser.id}`,{
+            method: "GET",
+			headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+        var results = await response.json();
+        scrapingHistory = results;
+    }
+    catch(error){
+        console.error('error al mostrar resultados de scraping')
+    }
     container.innerHTML = scrapingHistory.map(entry => `
         <div class="p-3 bg-gray-50 rounded-lg">
             <div class="flex justify-between items-center">
                 <div>
-                    <div class="font-medium text-sm">${entry.source}</div>
-                    <div class="text-xs text-gray-500">${entry.date}</div>
+                    <div class="font-medium text-sm">${entry.Cantidad} articulos extraidos</div>
+                    <div class="text-xs text-gray-500">${entry.FechaExtraccion}</div>
                 </div>
                 <div class="text-right">
-                    <span class="px-2 py-1 text-xs rounded-full ${entry.status === 'exitoso' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                        ${entry.status}
+                    <span class="px-2 py-1 text-xs rounded-full ${entry.Estado == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        ${entry.Estado}
                     </span>
-                    <div class="text-xs text-gray-500 mt-1">${entry.articlesFound} artículos</div>
+                    <div class="text-xs text-gray-500 mt-1">${entry.Cantidad} artículos</div>
                 </div>
             </div>
         </div>
@@ -575,7 +613,7 @@ function populateSourceFilters() {
 }
 
 function updateStats() {
-    document.getElementById('totalArticles').textContent = `${articles.filter(a => !a.isDiscarded).length} artículos`;
+    document.getElementById('totalArticles').textContent = `${articles.length} artículos`;
     document.getElementById('totalSources').textContent = `${sources.filter(s => s.active).length} fuentes`;
     
     // Update active sources count in scraping tab
@@ -586,6 +624,7 @@ function updateStats() {
     }
 }
 
+//done
 async function toggleFavorite(articleId) {
     const article = articles.find(a => a.Article.Id === articleId);
     if (article) {
@@ -597,17 +636,24 @@ async function toggleFavorite(articleId) {
                 },
                 body : JSON.stringify(articleId)
             });
+            var success = await response.json();
+            if(success){
+                article.Article.Favorito = !article.Article.Favorito;
+            }
         } catch (error) {
             console.error('error al asignar valor de favorito', error)
         }
         renderArticles();
         renderFavorites();
-        showAlert(article.Article.isFavorite ? 'Agregado a favoritos' : 'Removido de favoritos', 'info');
+        showAlert(article.Article.Favorito ?  'Agregado a favoritos' : 'Removido de favoritos', 'info');
+    }
+    else{
+        console.error(`article with id ${articleId} not found`);
     }
 }
 
 function discardArticle(articleId) {
-    const article = articles.find(a => a.id === articleId);
+    const article = articles.find(a => a.Article.id === articleId);
     if (article) {
         article.isDiscarded = true;
         renderArticles();
@@ -660,6 +706,7 @@ function clearFilters() {
     showAlert('Filtros limpiados', 'info');
 }
 
+//done
 function addSource(e) {
     e.preventDefault();
     const name = document.getElementById('sourceName').value;
@@ -680,6 +727,7 @@ function addSource(e) {
     showAlert('Fuente agregada exitosamente', 'success');
 }
 
+//done
 function toggleSource(sourceId) {
     const source = sources.find(s => s.id === sourceId);
     if (source) {
@@ -689,7 +737,7 @@ function toggleSource(sourceId) {
         showAlert(`Fuente ${source.active ? 'activada' : 'desactivada'}`, 'info');
     }
 }
-
+//done
 function removeSource(sourceId) {
     const index = sources.findIndex(s => s.id === sourceId);
     if (index !== -1) {
@@ -701,6 +749,7 @@ function removeSource(sourceId) {
     }
 }
 
+//done
 async function startScraping() {
     const button = document.getElementById('startScraping');
     const status = document.getElementById('scrapingStatus');
@@ -717,7 +766,7 @@ async function startScraping() {
     try {
         const urls = sources.map(obj => obj.url)
         console.log(JSON.stringify(urls));
-        const response = await fetch('/api/start-scraping', {
+        const response = await fetch(`/api/start-scraping?id=${currentUser.id}`, {
             method: "POST",
 			headers: {
                 'Content-Type': 'application/json',
@@ -734,16 +783,6 @@ async function startScraping() {
     
     // Simulate scraping process
     setTimeout(() => {
-        const scrapingResult = responseObj.result;
-        // const newEntry = {
-        //     id: scrapingResult.Id,
-        //     date: scrapingResult.FechaExtraccion,
-        //     status: isSuccess ? 'exitoso' : 'fallido',
-        //     articlesFound: responseObj.articleList.length,
-        //     source: 'Múltiples fuentes'
-        // };
-        
-        // scrapingHistory.unshift(newEntry);
         
         if (isSuccess) {
             // Add new articles to simulate scraping results
@@ -780,40 +819,37 @@ async function startScraping() {
     }, 3000);
 }
 
+// done
 function addNewScrapedArticles(articleList, sourceList) {
     const newArticleIds = [];
     for (let i = 0; i < articleList.length; i++) {
-        const article = articleList[i];
-        const source = sourceList[i];
-        const newArticle = {
-            Id: article.Id,
-            Tema: article.Tema.split(/[,]+/).filter(Boolean),
-            Titular: article.Titular,
-            Cuerpo: article.Cuerpo,
-            Fecha: article.Fecha,
-            Favorito: article.Favorito,
-            IdResultado: article.IdResultado,
 
-            Tipo: source.Tipo,
-            Nombre: source.Nombre,
-            Url: source.Url,
-            isDiscarded: false,
-            isNew: true
+        let article = articleList[i];
+        article.Tema = article.Tema.split(/[,]+/).filter(Boolean);
+
+        let source = sourceList[i];
+        
+        const newArticle = {
+            Article: article,
+            Source: source,
+            isNew: true,
+            isDiscarded: false
         };
         
         articles.push(newArticle);
-        newArticleIds.push(newArticle.id);
+        newArticleIds.push(newArticle.Article.Id);
     }
     
     return newArticleIds;
 }
 
+//done
 function showArticleReviewModal(newArticleIds) {
     const modal = document.createElement('div');
     modal.id = 'articleReviewModal';
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
     
-    const newArticles = articles.filter(a => newArticleIds.includes(a.id));
+    const newArticles = articles.filter(a => newArticleIds.includes(a.Article.Id));
     
     modal.innerHTML = `
         <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -831,26 +867,26 @@ function showArticleReviewModal(newArticleIds) {
             </div>
             
             <div class="space-y-4 mb-6" id="reviewArticlesList">
-                ${newArticles.map(article => `
-                    <div class="border border-gray-200 rounded-lg p-4" data-article-id="${article.id}">
+                ${newArticles.map(a => `
+                    <div class="border border-gray-200 rounded-lg p-4" data-article-id="${a.Article.Id}">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
-                                <h4 class="font-medium text-gray-900 mb-2">${article.title}</h4>
-                                <p class="text-gray-600 text-sm mb-3">${article.content.substring(0, 200)}...</p>
+                                <h4 class="font-medium text-gray-900 mb-2">${a.Article.Titular}</h4>
+                                <p class="text-gray-600 text-sm mb-3">${a.Article.Cuerpo.substring(0, 200)}...</p>
                                 <div class="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${article.source}</span>
-                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">${article.category}</span>
-                                    <span>${article.date}</span>
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${a.Source.Url}</span>
+                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">${a.Source.Tipo}</span>
+                                    <span>${a.Article.Fecha}</span>
                                 </div>
                                 <div class="flex flex-wrap gap-1">
-                                    ${article.keywords.map(keyword => `<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">${keyword}</span>`).join('')}
+                                    ${a.Article.Tema.map(keyword => `<span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">${keyword}</span>`).join('')}
                                 </div>
                             </div>
                             <div class="flex flex-col space-y-2 ml-4">
-                                <button onclick="keepArticleFromReview(${article.id})" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                                <button onclick="keepArticleFromReview(${a.Article.Id})" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
                                     ✅ Conservar
                                 </button>
-                                <button onclick="discardArticleFromReview(${article.id})" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                <button onclick="discardArticleFromReview(${a.Article.Id})" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm">
                                     🗑️ Descartar
                                 </button>
                             </div>
@@ -882,26 +918,28 @@ function showArticleReviewModal(newArticleIds) {
     document.getElementById('finishReview').addEventListener('click', closeArticleReviewModal);
     document.getElementById('keepAllArticles').addEventListener('click', () => keepAllFromReview(newArticleIds));
     document.getElementById('discardAllArticles').addEventListener('click', () => discardAllFromReview(newArticleIds));
+    keepAllFromReview(newArticleIds);
 }
 
+//done
 function keepArticleFromReview(articleId) {
-    const article = articles.find(a => a.id === articleId);
-    if (article) {
-        article.isNew = false;
+    const a = articles.find(a => a.Article.Id === articleId);
+    if (a) {
+        a.isDiscarded = false;
         const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);
         if (articleElement) {
             articleElement.style.backgroundColor = '#f0fdf4';
             articleElement.style.borderColor = '#22c55e';
+            articleElement.style.opacity = '1';
         }
         showAlert('Artículo conservado', 'success');
     }
 }
 
 function discardArticleFromReview(articleId) {
-    const article = articles.find(a => a.id === articleId);
-    if (article) {
-        article.isDiscarded = true;
-        article.isNew = false;
+    const a = articles.find(a => a.Article.Id === articleId);
+    if (a) {
+        a.isDiscarded = true;
         const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);
         if (articleElement) {
             articleElement.style.backgroundColor = '#fef2f2';
@@ -914,46 +952,55 @@ function discardArticleFromReview(articleId) {
 
 function keepAllFromReview(articleIds) {
     articleIds.forEach(id => {
-        const article = articles.find(a => a.id === id);
-        if (article && !article.isDiscarded) {
-            article.isNew = false;
-            const articleElement = document.querySelector(`[data-article-id="${id}"]`);
-            if (articleElement) {
-                articleElement.style.backgroundColor = '#f0fdf4';
-                articleElement.style.borderColor = '#22c55e';
-            }
-        }
+        keepArticleFromReview(id)
     });
     showAlert('Todos los artículos conservados', 'success');
 }
 
 function discardAllFromReview(articleIds) {
     articleIds.forEach(id => {
-        const article = articles.find(a => a.id === id);
-        if (article) {
-            article.isDiscarded = true;
-            article.isNew = false;
-            const articleElement = document.querySelector(`[data-article-id="${id}"]`);
-            if (articleElement) {
-                articleElement.style.backgroundColor = '#fef2f2';
-                articleElement.style.borderColor = '#ef4444';
-                articleElement.style.opacity = '0.6';
-            }
-        }
+        discardArticleFromReview(id)
     });
     showAlert('Todos los artículos descartados', 'info');
 }
 
-function closeArticleReviewModal() {
+async function closeArticleReviewModal() {
     const modal = document.getElementById('articleReviewModal');
     if (modal) {
         modal.remove();
         renderArticles();
-        updateStats();
         
-        const keptCount = articles.filter(a => !a.isDiscarded && !a.isNew).length - articles.filter(a => !a.isDiscarded && !a.isNew && !a.scrapingResultId).length;
-        const discardedCount = articles.filter(a => a.isDiscarded && a.scrapingResultId === scrapingHistory[0]?.id).length;
+        // const keptCount = articles.filter(a => !a.isDiscarded && a.isNew).length - articles.filter(a => !a.isDiscarded && a.isNew && !a.Article.IdResultado).length;
+        // const discardedCount = articles.filter(a => a.isDiscarded && a.Article.IdResultado === scrapingHistory[0]?.id).length;
+
+		const latestScrapingResultId = scrapingHistory.length > 0 ? scrapingHistory[scrapingHistory.length - 1].Id : null;
         
+        // Count articles from the latest scraping session that were kept vs discarded
+        const sessionArticles = articles.filter(a => a.Article.IdResultado === latestScrapingResultId);
+        const keptCount = sessionArticles.filter(a => !a.isDiscarded).length;
+        const discardedCount = sessionArticles.filter(a => a.isDiscarded).length;
+        articles.forEach(a => a.isNew = false);
+        
+        const discardedIds = sessionArticles.filter(a => a.isDiscarded).map(a => a.Article.Id);
+        
+        try{
+            response = await fetch(`/api/discard-articles?id=${currentUser.id}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(discardedIds)
+                }
+            );
+        }
+        catch(error){
+            console.error('error descartando articulos', error);
+        }
+        
+        console.log(discardedIds);
+        
+        renderArticles();
         showAlert(`Revisión completada
             Artículos procesados: ${keptCount} conservados, ${discardedCount} descartados`, 
             'info');
@@ -1008,25 +1055,26 @@ function saveProfile(e) {
     showAlert('Perfil actualizado exitosamente', 'success');
 }
 
+//done
 function showArticleDetail(articleId) {
-    const article = articles.find(a => a.id === articleId);
-    if (!article) return;
+    const a = articles.find(a => a.Article.Id == articleId);
+    if (!a) return;
     
-    document.getElementById('articleDetailTitle').textContent = article.title;
+    document.getElementById('articleDetailTitle').textContent = a.Article.Titular;
     document.getElementById('articleDetailContent').innerHTML = `
-        <p class="text-gray-700 leading-relaxed mb-4">${article.content}</p>
+        <p class="text-gray-700 leading-relaxed mb-4">${a.Article.Cuerpo}</p>
         <div class="bg-gray-50 p-4 rounded-lg">
             <h4 class="font-medium text-gray-900 mb-2">Palabras clave:</h4>
             <div class="flex flex-wrap gap-2">
-                ${article.keywords.map(keyword => `<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">${keyword}</span>`).join('')}
+                ${a.Article.Tema.map(keyword => `<span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">${keyword}</span>`).join('')}
             </div>
         </div>
     `;
     
     document.getElementById('articleDetailMeta').innerHTML = `
-        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">${article.source}</span>
-        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full">${article.category}</span>
-        <span>${article.date}</span>
+        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full">${a.Source.Url}</span>
+        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full">${a.Source.Tipo}</span>
+        <span>${a.Article.Fecha}</span>
     `;
     
     // Store current article ID for modal actions
@@ -1034,55 +1082,57 @@ function showArticleDetail(articleId) {
     
     // Update favorite button
     const favoriteBtn = document.getElementById('toggleArticleFavorite');
-    favoriteBtn.innerHTML = article.isFavorite ? '❤️ Quitar de Favoritos' : '🤍 Agregar a Favoritos';
+    favoriteBtn.innerHTML = a.Article.Favorito ? '❤️ Quitar de Favoritos' : '🤍 Agregar a Favoritos';
     
     document.getElementById('articleDetailModal').classList.remove('hidden');
 }
 
+//done
 function hideArticleDetailModal() {
     document.getElementById('articleDetailModal').classList.add('hidden');
 }
-
+// done
 function openArticleLinkFromModal() {
     const articleId = document.getElementById('articleDetailModal').dataset.articleId;
-    const article = articles.find(a => a.id == articleId);
-    if (article && article.url) {
-        window.open(article.url, '_blank', 'noopener,noreferrer');
+    const a = articles.find(a => a.Article.Id == articleId);
+    if (a && a.Source.Url) {
+        window.open(a.Source.Url, '_blank', 'noopener,noreferrer');
         showAlert('Abriendo enlace del artículo', 'info');
     } else {
         showAlert('Enlace no disponible', 'error');
     }
 }
-
+// done
 function openArticleLink(articleId) {
-    const article = articles.find(a => a.id === articleId);
-    if (article && article.url) {
-        window.open(article.url, '_blank', 'noopener,noreferrer');
+    const a = articles.find(a => a.Article.Id == articleId);
+    if (a && a.Source.Url) {
+        window.open(a.Source.Url, '_blank', 'noopener,noreferrer');
         showAlert('Abriendo enlace del artículo', 'info');
     } else {
         showAlert('Enlace no disponible', 'error');
     }
 }
 
+//done
 function toggleArticleFavoriteFromModal() {
     const articleId = parseInt(document.getElementById('articleDetailModal').dataset.articleId);
     toggleFavorite(articleId);
     
     // Update modal button
-    const article = articles.find(a => a.id === articleId);
+    const a = articles.find(a => a.Article.Id === articleId);
     const favoriteBtn = document.getElementById('toggleArticleFavorite');
-    favoriteBtn.innerHTML = article.isFavorite ? '❤️ Quitar de Favoritos' : '🤍 Agregar a Favoritos';
+    favoriteBtn.innerHTML = a.Article.Favorito ? '❤️ Quitar de Favoritos' : '🤍 Agregar a Favoritos';
 }
 
 function discardArticle(articleId) {
-    const article = articles.find(a => a.id === articleId);
-    if (article) {
-        article.isDiscarded = true;
+    const a = articles.find(a => a.Article.Id === articleId);
+    if (a) {
+        a.isDiscarded = true;
         
         // Remove associated source if no other articles use it
-        const sourceInUse = articles.some(a => a.source === article.source && !a.isDiscarded && a.id !== articleId);
+        const sourceInUse = articles.some(a => a.source === a.source && !a.isDiscarded && a.id !== articleId);
         if (!sourceInUse) {
-            const sourceIndex = sources.findIndex(s => s.name === article.source);
+            const sourceIndex = sources.findIndex(s => s.name === a.source);
             if (sourceIndex !== -1) {
                 sources.splice(sourceIndex, 1);
                 populateSourceFilters();

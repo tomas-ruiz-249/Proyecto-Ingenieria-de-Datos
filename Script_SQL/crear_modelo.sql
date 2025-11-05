@@ -33,7 +33,6 @@ create table Articulo(
     cuerpo text,
     fecha datetime,
     idResultadoFK int not null,
-    favorito bool not null,
     foreign key (idResultadoFK) references Resultado(id)
 );
 
@@ -51,4 +50,12 @@ create table ArticuloDetalle(
     idFuenteFK int unique not null,
     foreign key (idArticuloFK) references Articulo(id),
 	foreign key (idFuenteFK) references Fuente(id)
+);
+
+create table ArticulosUsuario(
+	idUsuarioFK int not null,
+    idArticulo int not null,
+    descartado bool not null,
+    favorito bool not null,
+    foreign key (idUsuarioFK) references Usuario(id)
 );

@@ -127,6 +127,11 @@ class Server
                     return;
                 }
             }
+            else if (request.Url.AbsolutePath == "/api/get-results")
+            {
+                GetResults(context);
+                return;
+            }
         }
         else if (request.HttpMethod == "PATCH")
         {
@@ -138,6 +143,11 @@ class Server
             else if (request.Url.AbsolutePath == "/api/update-article-fav")
             {
                 UpdateArticleFavorite(context);
+                return;
+            }
+            else if (request.Url.AbsolutePath == "/api/discard-articles")
+            {
+                DiscardArticles(context);
                 return;
             }
         }
@@ -161,6 +171,45 @@ class Server
             Console.WriteLine($"file does not exist {path}");
         }
     }
+    private void DiscardArticles(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        if (request.HasEntityBody)
+        {
+            var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+            int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+            var discardIds = JsonSerializer.Deserialize<List<int>>(body);
+
+            var success = _repository.DiscardArticles(id, discardIds);
+
+            byte[] buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(success));
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+        }
+    }
+    
+    private void GetResults(HttpListenerContext context)
+    {
+        var response = context.Response;
+        var request = context.Request;
+
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+        var results = _repository.GetResults(id);
+
+        string json = JsonSerializer.Serialize(results);
+        byte[] buffer = Encoding.UTF8.GetBytes(json);
+        response.ContentLength64 = buffer.Length;
+        response.ContentType = GetContentType(".json");
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
+    }
     
     private void UpdateArticleFavorite(HttpListenerContext context)
     {
@@ -173,8 +222,8 @@ class Server
             string body = reader.ReadToEnd();
 
             var articleId = JsonSerializer.Deserialize<int>(body);
-            _repository.(articleId);
-            byte[] buffer = Encoding.UTF8.GetBytes("");
+            var success = _repository.ToggleArticleFavorite(articleId);
+            byte[] buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(success));
             response.ContentLength64 = buffer.Length;
             response.OutputStream.Write(buffer, 0, buffer.Length);
             response.OutputStream.Close();
@@ -332,11 +381,13 @@ class Server
             string body = reader.ReadToEnd();
             Console.WriteLine("REQUEST WITH BODY: " + body);
             var sources = JsonSerializer.Deserialize<List<string>>(body) ?? [];
+            var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+            int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
 
             var scrapedData = new List<(Articulo article, Fuente source)>();
             foreach (var source in sources)
             {
-                var scrapedArticles = await _crawler.Crawl(source, _repository);
+                var scrapedArticles = await _crawler.Crawl(source, _repository, id);
                 scrapedData.AddRange(scrapedArticles);
             }
 

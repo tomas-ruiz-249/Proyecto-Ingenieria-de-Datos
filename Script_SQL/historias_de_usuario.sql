@@ -20,30 +20,47 @@ CREATE PROCEDURE RegistrarArticulo(
     OUT p_idFuente INT
 )
 BEGIN
-	INSERT INTO Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK, favorito)
-    VALUES (
-        IFNULL(p_tema, ''),
-        IFNULL(p_titular, ''),
-        IFNULL(p_subtitulo, ''),
-        IFNULL(p_cuerpo, ''),
-        p_fecha,
-        p_idResultadoFK,
-        p_favorito
-    );
-    SET p_idArticulo = LAST_INSERT_ID();
+	DECLARE v_idUsuario INT;
+    SELECT idUsuarioFK INTO v_idUsuario FROM Resultado WHERE id = p_idResultadoFK;
     
-    SELECT id INTO p_idFuente
-    FROM Fuente
-    WHERE url = p_url AND nombre = p_nombreFuente
-    LIMIT 1;
-
-    IF p_idFuente IS NULL THEN
+    SELECT a.id, f.id INTO p_idArticulo, p_idFuente
+    FROM Articulo a
+    INNER JOIN ArticuloDetalle ad ON ad.idArticuloFK = a.id
+    INNER JOIN Fuente f ON f.id = ad.idFuenteFK
+    WHERE p_titular = a.titular
+    AND p_url = f.url;
+    
+    IF p_idArticulo IS NULL THEN
+		INSERT INTO Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK)
+		VALUES (
+			IFNULL(p_tema, ''),
+			IFNULL(p_titular, ''),
+			IFNULL(p_subtitulo, ''),
+			IFNULL(p_cuerpo, ''),
+			p_fecha,
+			p_idResultadoFK
+		);
+		SET p_idArticulo = LAST_INSERT_ID();
+        
         INSERT INTO Fuente (url, tipo, nombre)
-        VALUES (p_url, p_tipo, p_nombreFuente);
-        SET p_idFuente = LAST_INSERT_ID();
+		VALUES (p_url, p_tipo, p_nombreFuente);
+		SET p_idFuente = LAST_INSERT_ID();
         
         INSERT INTO ArticuloDetalle (idArticuloFK, idFuenteFK)
 		VALUES (p_idArticulo, p_idFuente);
+    END IF;
+    
+    IF EXISTS(
+		SELECT * FROM ArticulosUsuario 
+        WHERE idUsuarioFK = v_idUsuario
+        AND idArticulo = p_idArticulo
+	)
+	THEN
+		SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Este Articulo ya existe para este usuario';
+    ELSE
+		INSERT INTO ArticulosUsuario (idUsuarioFK, idArticulo, descartado, favorito)
+		VALUES (v_idUsuario, p_idArticulo, false, p_favorito);
     END IF;
 END$$
 DELIMITER ;
@@ -53,11 +70,12 @@ DELIMITER ;
 Delimiter $$
 Create Procedure ConsultarArticulos(IN idUsuarioP INT)
 Begin
-	SELECT a.*, f.id as idFuente, f.url, f.tipo, f.nombre FROM Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
+	SELECT a.*, au.favorito as favorito, f.id as idFuente, f.url, f.tipo, f.nombre FROM Articulo a
     INNER JOIN ArticuloDetalle ad ON ad.idArticuloFK = a.id
     INNER JOIN Fuente f ON f.id = ad.idFuenteFK
-    WHERE idUsuarioP = r.idUsuarioFK;
+    INNER JOIN ArticulosUsuario au ON au.idArticulo = a.id
+    WHERE idUsuarioP = au.idUsuarioFK
+    AND !au.descartado;
 End $$
 Delimiter ;
 
@@ -77,15 +95,19 @@ Delimiter ;
 -- HU004 Descartar articulos ---------------------------------------
 delimiter $$
 create procedure eliminarArticulo(
-    in p_id_articulo int
+    in p_id_articulo int,
+    in p_id_usuario int
 )
 begin
-    if exists (select 1 from articulo where id = p_id_articulo) then
-        delete from articulodetalle where idarticulofk = p_id_articulo;
-        delete from articulo where id = p_id_articulo;
-        select 'el articulo fue eliminado correctamente' as mensaje;
-    else
-        select 'el articulo no existe' as mensaje;
+    if exists (
+		select * from ArticulosUsuario 
+		where idArticulo = p_id_articulo
+        and idUsuarioFK = p_id_usuario
+	) then
+        update ArticulosUsuario 
+        set descartado = true 
+        where idArticulo = p_id_articulo
+        and idUsuarioFK = p_id_usuario;
     end if;
 end$$
 delimiter ;
@@ -93,18 +115,14 @@ delimiter ;
 -- HU005 Asignar articulos como favoritos-----------------------
 delimiter $$
 create procedure toggle_favorito(
-    in p_id_articulo int,
-    in p_favorito bool
+    in p_id_articulo int
 )
 begin
-    if exists (select 1 from articulo where id = p_id_articulo) then
-        update articulo
-        set favorito = p_favorito
-        where id = p_id_articulo;
-        select 'el articulo fue actualizado correctamente' as mensaje;
-    else
-        select 'el articulo no existe' as mensaje;
-    end if;
+    if exists (select 1 from Articulo where id = p_id_articulo) then
+        update ArticulosUsuario
+        set favorito = !favorito
+        where idArticulo = p_id_articulo;
+	end if;
 end$$
 delimiter ;
 
@@ -195,9 +213,8 @@ FOR EACH ROW
 BEGIN 
     IF EXISTS(
 		SELECT * FROM Articulo a
-        INNER JOIN Resultado r ON r.id = a.idResultadoFK
-        WHERE NEW.titular = a.titular 
-        AND r.idUsuarioFK = (SELECT idUsuarioFK FROM Resultado WHERE id = NEW.idResultadoFK)
+        WHERE NEW.titular = a.titular
+        AND NEW.fecha = a.fecha
 	) THEN
 		SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Articulo duplicado, inserción cancelada';
@@ -258,7 +275,8 @@ CREATE TRIGGER EliminarDatosAsociadosUsuario
 BEFORE DELETE ON Usuario
 FOR EACH ROW
 BEGIN
-    DELETE FROM Resultado WHERE r.idUsuarioFK = OLD.id;
+    DELETE FROM Resultado WHERE idUsuarioFK = OLD.id;
+    DELETE FROM ArticulosUsuario WHERE idUsuarioFK = OLD.id;
 END $$
 DELIMITER ;
 
@@ -441,7 +459,7 @@ CREATE PROCEDURE AsignarLecturaNotificacion(
     IN idNotificacionP INT
 )
 BEGIN
-    UPDATE Notificacion SET leido = TRUE WHERE id = idNotificacionP;
+    UPDATE Notificacion SET leido = !leido WHERE id = idNotificacionP;
 END $$
 DELIMITER ; 
 
@@ -483,12 +501,12 @@ DELIMITER ;
 #HU032 Visualizar los resultados de la extracción de artículos
 DELIMITER $$
 CREATE PROCEDURE VisualizarResultadoExtraccion(
-    IN idResultadoP INT
+    IN idUsuarioP INT
 )
 BEGIN
 	SELECT r.*, COUNT(a.id) AS cantidad FROM Resultado r
     INNER JOIN Articulo a ON a.idResultadoFK = r.id
-    WHERE r.id = idResultadoP
+    WHERE r.idUsuarioFK = idUsuarioP
     GROUP BY r.id;
 END $$
 DELIMITER ;

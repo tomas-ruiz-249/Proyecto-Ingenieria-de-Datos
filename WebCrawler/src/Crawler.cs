@@ -17,7 +17,7 @@ class Crawler
         _visited = [];
     }
 
-    public async Task<List<(Articulo article, Fuente source)>> Crawl(string startUrl, Repository repository)
+    public async Task<List<(Articulo article, Fuente source)>> Crawl(string startUrl, Repository repository, int userId)
     {
         var scrapedArticles = new List<(Articulo article, Fuente source)>();
         if (!repository.Connected)
@@ -28,7 +28,7 @@ class Crawler
 
         _parser.SetStartUrl(startUrl);
         _urls.Enqueue(new Uri(startUrl));
-        repository.RegisterScraping(user);
+        repository.RegisterScraping(userId);
         var resultId = repository.GetLastResultId();
         LastResult = repository.GetLastResult(resultId);
         int articleCount = 0;
@@ -85,7 +85,8 @@ class Crawler
             }
 
         }
-        // _urls.Clear();
+        _urls.Clear();
+        _visited.Clear();
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"scraping attempt ended with {articleCount} articles found and registered in the database...");
         Console.ForegroundColor = ConsoleColor.White;
@@ -97,5 +98,4 @@ class Crawler
     private readonly Queue<Uri> _urls;
     private readonly HashSet<Uri> _visited;
     private readonly Parser _parser;
-    private const int user = 1;
 }
