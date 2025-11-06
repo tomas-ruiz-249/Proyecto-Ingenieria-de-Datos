@@ -22,6 +22,8 @@ create table Resultado(
     idUsuarioFK int not null,
     estado  int not null,
     fechaExtraccion datetime not null,
+    descartado bool not null,
+    numArticulos int not null default 0,
 	foreign key (idUsuarioFK) references Usuario(id)
 );
 

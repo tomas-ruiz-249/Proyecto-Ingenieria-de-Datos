@@ -58,9 +58,10 @@ BEGIN
 	THEN
 		SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Este Articulo ya existe para este usuario';
-		INSERT INTO ArticulosUsuario (idUsuarioFK, idArticulo, descartado, favorito)
-		VALUES (v_idUsuario, p_idArticulo, false, p_favorito);
     END IF;
+    
+    INSERT INTO ArticulosUsuario (idUsuarioFK, idArticulo, descartado, favorito)
+		VALUES (v_idUsuario, p_idArticulo, false, p_favorito);
 END$$
 DELIMITER ;
 
@@ -98,6 +99,7 @@ create procedure eliminarArticulo(
     in p_id_usuario int
 )
 begin
+	declare articuloSinUsuarios bool;
     if exists (
 		select * from ArticulosUsuario 
 		where idArticulo = p_id_articulo
@@ -107,6 +109,14 @@ begin
         set descartado = true 
         where idArticulo = p_id_articulo
         and idUsuarioFK = p_id_usuario;
+        
+        select count(*) = sum(descartado) into articuloSinUsuarios 
+        from ArticulosUsuario
+        where idArticulo = p_id_articulo;
+        
+        if articuloSinUsuarios then
+			delete from Articulo where id = p_id_articulo;
+		end if;
     end if;
 end$$
 delimiter ;
@@ -299,8 +309,8 @@ BEGIN
     DECLARE v_estado INT DEFAULT 2; #2: en proceso
 
     -- Crear un nuevo registro en la tabla Resultado
-    INSERT INTO Resultado (idUsuarioFK, estado, fechaExtraccion)
-    VALUES (p_idUsuario, v_estado, NOW());
+    INSERT INTO Resultado (idUsuarioFK, estado, fechaExtraccion, descartado)
+    VALUES (p_idUsuario, v_estado, NOW(), false);
 
     SET v_idResultado = LAST_INSERT_ID();
 
@@ -343,19 +353,15 @@ delimiter ;
 -- HU021 Eliminar Registros ------------------------------------------------ 
 delimiter $$
 create procedure eliminar_resultado(
-    in p_id_resultado int
+    in p_id_usuario int
 )
 begin
-    if exists (select 1 from Resultado where id = p_id_resultado) then
-        delete from Resultado
-        where id = p_id_resultado;
-        select concat('Resultado con id ', p_id_resultado, ' y sus registros asociados han sido eliminados') as mensaje;
-    else
-        select concat('Error: Resultado con id ', p_id_resultado, ' no existe') as mensaje;
-    end if;
+	SET SQL_SAFE_UPDATES = 0;
+    DELETE FROM ArticulosUsuario WHERE idUsuarioFK = p_id_usuario;
+    UPDATE Resultado SET descartado = TRUE;
+    SET SQL_SAFE_UPDATES = 1;
 end$$
 delimiter ;
-
 
 #HU022 Registrar Nuevo usuario en el sistema
 Delimiter $$
@@ -447,7 +453,8 @@ BEGIN
         SET mensajeP = CONCAT("Hay ", numNotificaciones, " notificaciones");
         SELECT * FROM Notificacion n
         INNER JOIN Resultado r ON r.id = n.idResultadoFK
-        WHERE r.idUsuarioFK = idUsuarioP;
+        WHERE r.idUsuarioFK = idUsuarioP
+        AND r.descartado = false;
     END IF;
 END $$
 DELIMITER ;
@@ -503,9 +510,9 @@ CREATE PROCEDURE VisualizarResultadoExtraccion(
     IN idUsuarioP INT
 )
 BEGIN
-	SELECT r.*, COUNT(a.id) AS cantidad FROM Resultado r
-    INNER JOIN Articulo a ON a.idResultadoFK = r.id
+	SELECT r.*, r.numArticulos AS cantidad FROM Resultado r
     WHERE r.idUsuarioFK = idUsuarioP
+    AND !r.descartado
     GROUP BY r.id;
 END $$
 DELIMITER ;
@@ -523,14 +530,9 @@ DELIMITER ;
 
 #HU034 CambiarCorreo
 DELIMITER $$
-CREATE PROCEDURE CambiarCorreoUsuario(IN idUsuarioP INT, IN correoActual VARCHAR(50),IN correoNuevo VARCHAR(50),OUT mensaje VARCHAR(100))
+CREATE PROCEDURE CambiarCorreoUsuario(IN idUsuarioP INT,IN correoNuevo VARCHAR(50))
 BEGIN
-    Update Usuario Set correo = correoNuevo Where correo = correoActual AND id = idUsuarioP;
-    IF ROW_COUNT() > 0 THEN
-        SET mensaje = "Se actualizo el correo exitosamente...";
-    ELSE
-        SET mensaje = "Error al actualizar el correo, verifica que el nuevo sea diferente al anterior";
-    END IF;
+    Update Usuario Set correo = correoNuevo Where id = idUsuarioP;
 END $$
 DELIMITER ;
 
@@ -580,11 +582,10 @@ DELIMITER ;
 
 #HU037 Cambiar nombre y apellido
 DELIMITER $$
-CREATE PROCEDURE CambiarNombreApellidoUsuario(IN idP INT,IN nuevoNombre VARCHAR(50),IN nuevoApellido VARCHAR(50),OUT mensaje VARCHAR(100)
+CREATE PROCEDURE CambiarNombreApellidoUsuario(IN idP INT, IN nuevoNombre VARCHAR(50), IN nuevoApellido VARCHAR(50)
 )
 BEGIN
-    Update Usuario SET nombre = nuevoNombre, apellido = nuevoApellido Where id = idP;
-    SET mensaje = "Nombre y apellido actualizados correctamente";
+    Update Usuario SET nombres = nuevoNombre, apellidos = nuevoApellido Where id = idP;
 END $$
 DELIMITER ;
 
@@ -639,6 +640,7 @@ BEGIN
 
     DELETE FROM ArticuloDetalle WHERE idArticuloFK = OLD.id;
     DELETE FROM Fuente WHERE id = idFuenteV;
+    DELETE FROM ArticulosUsuario WHERE idArticulo = OLD.id;
 END $$;
 DELIMITER ;
 

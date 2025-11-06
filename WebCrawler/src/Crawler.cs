@@ -90,6 +90,7 @@ class Crawler
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.WriteLine($"scraping attempt ended with {articleCount} articles found and registered in the database...");
         Console.ForegroundColor = ConsoleColor.White;
+        repository.SetResultFinished(resultId,articleCount);
         return scrapedArticles;
     }
 

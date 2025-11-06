@@ -3,7 +3,7 @@ let currentUser = {
     id: -1,
     nombres: "",
     apellidos: "",
-    email: ""
+    correo: ""
 };
 
 let articles = [];
@@ -53,6 +53,7 @@ async function renderNotifications(filteredNotifications = null) {
             console.log("error al obtener notificaciones", error)
         }
     }
+    updateNotificationCount();
     const notificationsToRender = filteredNotifications || notifications;
     const container = document.getElementById('notificationsList');
     
@@ -100,7 +101,6 @@ async function renderNotifications(filteredNotifications = null) {
             </div>
         `;
     }).join('');
-    updateNotificationCount();
 }
 
 //done
@@ -215,23 +215,6 @@ async function applyNotificationFilters() {
     showAlert(`${filtered.length} notificaciones encontradas`, 'info');
 }
 
-//done
-// function createNotification(title, message, type = 'info', scrapingResultId = null) {
-//     const newNotification = {
-//         id: notifications.length + 1,
-//         title: title,
-//         message: message,
-//         type: type,
-//         date: new Date().toLocaleString('es-ES'),
-//         isRead: false,
-//         scrapingResultId: scrapingResultId
-//     };
-    
-//     notifications.unshift(newNotification);
-    
-//     // Show toast notification
-//     showAlert(title, type);
-// }
 
 //done
 function setupEventListeners() {
@@ -402,7 +385,11 @@ function logout() {
     currentUser.id = -1;
     currentUser.apellidos = "";
     currentUser.nombres = "";
-    currentUser.email = "";
+    currentUser.correo = "";
+    articles = [];
+    scrapingHistory = [];
+    sources = [];
+    notifications = [];
     dashboard.classList.add('hidden');
     loginScreen.classList.remove('hidden');
     document.getElementById('userMenu').classList.add('hidden');
@@ -455,6 +442,7 @@ async function renderArticles(filteredArticles = null) {
     } catch (error) {
         console.error('error al mostrar articulos', error)
     }
+    updateStats();
     const articlesToRender = filteredArticles || articles.filter(a => !a.isDiscarded);
     const container = document.getElementById('articlesList');
     
@@ -497,7 +485,6 @@ async function renderArticles(filteredArticles = null) {
             </div>
         </div>
     `).join('');
-    updateStats();
 }
 //done
 function renderFavorites() {
@@ -588,6 +575,9 @@ async function renderScrapingHistory() {
     catch(error){
         console.error('error al mostrar resultados de scraping')
     }
+    const colors = ['bg-green-100 text-green-800','bg-red-100 text-red-800','bg-blue-100 text-blue-800']
+    const texts = ["Exito", "Fallo", "En proceso"]
+
     container.innerHTML = scrapingHistory.map(entry => `
         <div class="p-3 bg-gray-50 rounded-lg">
             <div class="flex justify-between items-center">
@@ -596,8 +586,8 @@ async function renderScrapingHistory() {
                     <div class="text-xs text-gray-500">${entry.FechaExtraccion}</div>
                 </div>
                 <div class="text-right">
-                    <span class="px-2 py-1 text-xs rounded-full ${entry.Estado == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                        ${entry.Estado}
+                    <span class="px-2 py-1 text-xs rounded-full ${colors[entry.Estado]}">
+                        ${texts[entry.Estado]}
                     </span>
                     <div class="text-xs text-gray-500 mt-1">${entry.Cantidad} artículos</div>
                 </div>
@@ -606,12 +596,13 @@ async function renderScrapingHistory() {
     `).join('');
 }
 
+//done
 function populateSourceFilters() {
     const select = document.getElementById('sourceFilter');
     select.innerHTML = '<option value="">Todas las fuentes</option>' + 
         sources.map(source => `<option value="${source.name}">${source.name}</option>`).join('');
 }
-
+//done
 function updateStats() {
     document.getElementById('totalArticles').textContent = `${articles.length} artículos`;
     document.getElementById('totalSources').textContent = `${sources.filter(s => s.active).length} fuentes`;
@@ -652,15 +643,6 @@ async function toggleFavorite(articleId) {
     }
 }
 
-// function discardArticle(articleId) {
-//     const article = articles.find(a => a.Article.id === articleId);
-//     if (article) {
-//         article.isDiscarded = true;
-//         renderArticles();
-//         updateStats();
-//         showAlert('Artículo descartado', 'info');
-//     }
-// }
 
 function applyFilters() {
     const titleFilter = document.getElementById('titleFilter').value.toLowerCase();
@@ -775,6 +757,7 @@ async function startScraping() {
         });
         responseObj = await response.json();
         console.log(JSON.stringify(responseObj));
+        renderScrapingHistory();
     }
     catch(error){
         console.error("error al iniciar scraping",error);
@@ -791,8 +774,8 @@ async function startScraping() {
             status.textContent = 'Scraping completado. Revisa los nuevos artículos.';
             
             // Update displays after scraping
-            renderScrapingHistory();
             renderArticles();
+            renderNotifications();
             updateStats();
             
             button.disabled = false;
@@ -808,6 +791,7 @@ async function startScraping() {
 
         } else {
             renderScrapingHistory();
+            renderNotifications();
             updateStats();
             
             button.disabled = false;
@@ -1011,52 +995,110 @@ async function closeArticleReviewModal() {
     }
 }
 
-function clearOldLogs() {
+
+//done
+async function clearOldLogs() {
     const oldLogsCount = scrapingHistory.length;
-    scrapingHistory.length = Math.min(scrapingHistory.length, 5); // Keep only last 5 entries
+    try{
+        response = await fetch(`/api/delete-results?id=${currentUser.id}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        )
+    }
+    catch(error){
+        console.error('error al eliminar registros', error)
+    }
     renderScrapingHistory();
+    renderArticles();
+    renderNotifications();
     
-    // Also clear related notifications
     const removedLogs = oldLogsCount - scrapingHistory.length;
     if (removedLogs > 0) {
         showAlert(`${removedLogs} logs antiguos eliminados`, 'info');
     }
 }
 
+//done
 function showEditProfileModal() {
-    document.getElementById('firstName').value = currentUser.firstName;
-    document.getElementById('lastName').value = currentUser.lastName;
-    document.getElementById('email').value = currentUser.email;
+    document.getElementById('nombres').value = currentUser.nombres;
+    document.getElementById('apellidos').value = currentUser.apellidos;
+    document.getElementById('email').value = currentUser.correo;
     document.getElementById('editProfileModal').classList.remove('hidden');
     document.getElementById('userMenu').classList.add('hidden');
 }
 
+//done
 function hideEditProfileModal() {
     document.getElementById('editProfileModal').classList.add('hidden');
 }
 
-function saveProfile(e) {
+async function saveProfile(e) {
     e.preventDefault();
-    const newFirstName = document.getElementById('firstName').value;
-    const newLastName = document.getElementById('lastName').value;
-    const newEmail = document.getElementById('email').value;
-    
-    // Simulate email uniqueness check
-    const emailExists = newEmail !== currentUser.email && Math.random() < 0.1; // 10% chance of duplicate
-    
-    if (emailExists) {
-        showAlert('Este correo ya está en uso', 'error');
-        return;
+    const newFirstName = document.getElementById('nombres').value;
+    const newLastName = document.getElementById('apellidos').value;
+    const newEmail = document.getElementById('editEmail').value;
+
+    if(currentUser.nombres != newFirstName || currentUser.apellidos != newLastName){
+        try{
+            response = await fetch(`/api/edit-user?id=${currentUser.id}`,
+                {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        Id : -1,
+                        Nombres: newFirstName,
+                        Apellidos : newLastName,
+                        Correo : "",
+                        Contraseña : ""
+                    })
+                }
+            );
+            const success = await response.json();
+            if(success){
+                currentUser.firstName = newFirstName;
+                currentUser.lastName = newLastName;
+                showAlert('Nombres y apellidos actualizados exitosamente', 'success');
+                document.getElementById('currentUser').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+            }
+        }
+        catch(error){
+            console.error("error al cambiar nombre y apellido", error);
+        }
     }
+
+	if(newEmail != currentUser.correo){
+		try{
+			response = await fetch(`/api/edit-email?id=${currentUser.id}`,
+				{
+					method: 'PATCH',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(newEmail)
+				}
+			);
+			const success = await response.json();
+			if(success){
+				currentUser.correo = newEmail;
+				showAlert('Correo actualizado exitosamente', 'success');
+			}
+            else{
+				showAlert('Este correo ya existe, escoge otro...', 'success');
+            }
+		}
+		catch(error){
+			console.error("error al cambiar correo", error);
+		}
+	}
     
-    currentUser.firstName = newFirstName;
-    currentUser.lastName = newLastName;
-    currentUser.email = newEmail;
-    
-    document.getElementById('currentUser').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
     
     hideEditProfileModal();
-    showAlert('Perfil actualizado exitosamente', 'success');
 }
 
 //done
@@ -1128,6 +1170,7 @@ function toggleArticleFavoriteFromModal() {
     favoriteBtn.innerHTML = a.Article.Favorito ? '❤️ Quitar de Favoritos' : '🤍 Agregar a Favoritos';
 }
 
+//done
 async function discardArticle(articleId) {
     const a = articles.find(a => a.Article.Id === articleId);
     if (a) {
@@ -1154,23 +1197,17 @@ async function discardArticle(articleId) {
     }
 }
 
+//done
 function removeSource(sourceId) {
     const source = sources.find(s => s.id === sourceId);
     if (source) {
-        // Remove all articles from this source
-        articles.forEach(article => {
-            if (article.source === source.name) {
-                article.isDiscarded = true;
-            }
-        });
-        
         const index = sources.findIndex(s => s.id === sourceId);
         sources.splice(index, 1);
         renderSources();
         populateSourceFilters();
         renderArticles();
         updateStats();
-        showAlert('Fuente y artículos asociados eliminados', 'info');
+        showAlert('Fuente eliminada', 'info');
     }
 }
 
@@ -1186,14 +1223,17 @@ function deleteAccount() {
     logout();
 }
 
+//done
 function showChangePasswordModal() {
     document.getElementById('changePasswordModal').classList.remove('hidden');
     document.getElementById('userMenu').classList.add('hidden');
 }
 
+//done
 function hideChangePasswordModal() {
     document.getElementById('changePasswordModal').classList.add('hidden');
 }
+
 
 function changePassword(e) {
     e.preventDefault();
@@ -1203,22 +1243,25 @@ function changePassword(e) {
     document.getElementById('changePasswordForm').reset();
 }
 
+//done
 function showDeleteAccountModal() {
     document.getElementById('deleteAccountModal').classList.remove('hidden');
     document.getElementById('userMenu').classList.add('hidden');
 }
 
+//done
 function hideDeleteAccountModal() {
     document.getElementById('deleteAccountModal').classList.add('hidden');
 }
 
-function deleteAccount() {
-    // Simulate account deletion
-    hideDeleteAccountModal();
-    showAlert('Cuenta eliminada exitosamente', 'info');
-    logout();
-}
+// function deleteAccount() {
+//     // Simulate account deletion
+//     hideDeleteAccountModal();
+//     showAlert('Cuenta eliminada exitosamente', 'info');
+//     logout();
+// }
 
+//done
 function hideAllModals() {
     document.getElementById('changePasswordModal').classList.add('hidden');
     document.getElementById('deleteAccountModal').classList.add('hidden');
@@ -1226,6 +1269,7 @@ function hideAllModals() {
     document.getElementById('articleDetailModal').classList.add('hidden');
 }
 
+//done
 function showAlert(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification bg-white border-l-4 p-4 rounded-lg shadow-lg max-w-sm ${

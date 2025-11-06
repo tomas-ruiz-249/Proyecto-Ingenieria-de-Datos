@@ -150,12 +150,27 @@ class Server
                 DiscardArticles(context);
                 return;
             }
+            else if (request.Url.AbsolutePath == "/api/edit-user")
+            {
+                EditUser(context);
+                return;
+            }
+            else if (request.Url.AbsolutePath == "/api/edit-email")
+            {
+                EditEmail(context);
+                return;
+            }
         }
         else if (request.HttpMethod == "DELETE")
         {
-            if (request.Url.AbsolutePath.Contains("/api/delete-notif"))
+            if (request.Url.AbsolutePath == "/api/delete-notif")
             {
                 DeleteNotification(context);
+                return;
+            }
+            else if (request.Url.AbsolutePath == "/api/delete-results")
+            {
+                DeleteResults(context);
                 return;
             }
         }
@@ -170,6 +185,71 @@ class Server
         {
             Console.WriteLine($"file does not exist {path}");
         }
+    }
+
+    private void EditEmail(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        if (request.HasEntityBody)
+        {
+            var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+            int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+
+            var newEmail = JsonSerializer.Deserialize<string>(body);
+
+            System.Console.WriteLine(newEmail);
+            var success = _repository.EditEmail(id, newEmail);
+
+            byte[] buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(success));
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+        }
+    }
+    
+    private void EditUser(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        if (request.HasEntityBody)
+        {
+            var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+            int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+
+            var newUser = JsonSerializer.Deserialize<Usuario>(body);
+
+            var success = _repository.EditUser(id, newUser.Nombres, newUser.Apellidos);
+
+            byte[] buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(success));
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+        }
+    }
+    
+    private void DeleteResults(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+
+        var success = _repository.DeleteResults(id);
+        Console.WriteLine($"success {success}");
+
+        byte[] buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(success));
+        response.ContentLength64 = buffer.Length;
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
     }
     private void DiscardArticles(HttpListenerContext context)
     {

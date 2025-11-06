@@ -59,6 +59,24 @@ class Repository
 
         return success;
     }
+    
+    public bool SetResultFinished(int resultId, int articleCount)
+    {
+        var success = false;
+        try
+        {
+            var query = $"UPDATE Resultado SET estado = 0, numArticulos = {articleCount} WHERE id = {resultId}";
+            var cmd = new MySqlCommand(query, Connection);
+            success = true;
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(ex.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        return success;
+    }
 
     public bool StoreArticleWithSource(Articulo a, Fuente f, int idResultado)
     {
@@ -115,6 +133,73 @@ class Repository
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine("Article was not registered...");
             Console.ForegroundColor = ConsoleColor.White;
+        }
+        return success;
+    }
+    public bool EditEmail(int userId, string email)
+    {
+        var success = false;
+        try
+        {
+            var procedure = "CambiarCorreoUsuario";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("idUsuarioP", userId);
+            cmd.Parameters.AddWithValue("correoNuevo", email);
+            var rowsAffected = cmd.ExecuteNonQuery();
+            System.Console.WriteLine(rowsAffected);
+            success = true;
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+
+        }
+        return success;
+    }
+    public bool EditUser(int userId, string name, string lastName)
+    {
+        var success = false;
+        try
+        {
+            var procedure = "CambiarNombreApellidoUsuario";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("idP", userId);
+            cmd.Parameters.AddWithValue("nuevoNombre", name);
+            cmd.Parameters.AddWithValue("nuevoApellido", lastName);
+            var rowsAffected = cmd.ExecuteNonQuery();
+            success = true;
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+
+        }
+        return success;
+    }
+    public bool DeleteResults(int userId)
+    {
+        var success = false;
+        try
+        {
+            var procedure = "eliminar_resultado";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("p_id_usuario", userId);
+            var rowsAffected = cmd.ExecuteNonQuery();
+            success = true;
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+
         }
         return success;
     }
