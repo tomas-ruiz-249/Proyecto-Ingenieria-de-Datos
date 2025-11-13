@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.Json;
 using System.Web;
@@ -173,10 +172,15 @@ class Server
                 DeleteResults(context);
                 return;
             }
+            else if (request.Url.AbsolutePath == "/api/delete-user")
+            {
+                DeleteUser(context);
+                return;
+            }
+
         }
 
         string path = GetFilePath(request.Url.LocalPath);
-
         if (File.Exists(path))
         {
             ServeFile(path, response);
@@ -185,6 +189,11 @@ class Server
         {
             Console.WriteLine($"file does not exist {path}");
         }
+    }
+
+    private void DeleteUser(HttpListenerContext context)
+    {
+
     }
 
     private void EditEmail(HttpListenerContext context)
@@ -211,7 +220,7 @@ class Server
             response.OutputStream.Close();
         }
     }
-    
+
     private void EditUser(HttpListenerContext context)
     {
         var request = context.Request;
@@ -235,7 +244,7 @@ class Server
             response.OutputStream.Close();
         }
     }
-    
+
     private void DeleteResults(HttpListenerContext context)
     {
         var request = context.Request;
@@ -273,7 +282,7 @@ class Server
             response.OutputStream.Close();
         }
     }
-    
+
     private void GetResults(HttpListenerContext context)
     {
         var response = context.Response;
@@ -290,7 +299,7 @@ class Server
         response.OutputStream.Write(buffer, 0, buffer.Length);
         response.OutputStream.Close();
     }
-    
+
     private void UpdateArticleFavorite(HttpListenerContext context)
     {
         var request = context.Request;
@@ -356,7 +365,7 @@ class Server
         response.OutputStream.Write(buffer, 0, buffer.Length);
         response.OutputStream.Close();
     }
-    
+
     private void ValidateLoginCredentials(HttpListenerContext context)
     {
         var request = context.Request;
@@ -377,7 +386,7 @@ class Server
             response.OutputStream.Close();
         }
     }
-    
+
     private void FilterNotifications(HttpListenerContext context)
     {
         var request = context.Request;
@@ -387,7 +396,7 @@ class Server
         int? tipo = string.IsNullOrEmpty(parsedUrl["type"]) ? null : Convert.ToInt32(parsedUrl["type"]);
         bool? leido = string.IsNullOrEmpty(parsedUrl["read"]) ? null : Convert.ToInt32(parsedUrl["read"]) > 0;
         int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
-        var notifications = _repository.FilterNotifications(id,tipo, leido);
+        var notifications = _repository.FilterNotifications(id, tipo, leido);
         var responseObj = new
         {
             notifList = notifications

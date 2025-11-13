@@ -1036,6 +1036,7 @@ function hideEditProfileModal() {
     document.getElementById('editProfileModal').classList.add('hidden');
 }
 
+//done
 async function saveProfile(e) {
     e.preventDefault();
     const newFirstName = document.getElementById('nombres').value;
@@ -1217,7 +1218,18 @@ function deleteAccount() {
     notifications.length = 0;
     scrapingHistory.length = 0;
     sources.length = 0;
-    
+    try{
+        const response = fetch(`/api/delete-user?id=${currentUser.id}`,
+			{
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+		});
+    }
+    catch(error){
+        console.error('error eliminando usuario', error)
+    }
     hideDeleteAccountModal();
     showAlert('Cuenta y todos los datos asociados eliminados', 'info');
     logout();
