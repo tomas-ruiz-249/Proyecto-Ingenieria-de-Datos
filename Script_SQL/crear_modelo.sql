@@ -6,7 +6,7 @@ create table Usuario(
     id int primary key auto_increment not null,
     nombres varchar(50) not null,
     apellidos varchar(50) not null,
-    contraseña varchar(20) not null,
+    contraseña varchar(30) not null,
     correo varchar(50) not null 
 );
 
