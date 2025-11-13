@@ -1,5 +1,6 @@
 using System.Data;
 using MySqlConnector;
+
 class Repository
 {
     public Repository(string connectionString)
@@ -59,7 +60,7 @@ class Repository
 
         return success;
     }
-    
+
     public bool SetResultFinished(int resultId, int articleCount)
     {
         var success = false;
@@ -136,6 +137,49 @@ class Repository
         }
         return success;
     }
+    public bool ChangePassword(int userId, string newPassword)
+    {
+        var success = false;
+        try
+        {
+            var procedure = "ActualizarContrasena";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("xnuevacontrasena", newPassword);
+            cmd.Parameters.AddWithValue("idUsuario", userId);
+            var rowsAffected = cmd.ExecuteNonQuery();
+            success = true;
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+
+        }
+        return success;
+    }
+    public bool DeleteUser(int userId)
+    {
+        var success = false;
+        try
+        {
+            var procedure = "EliminarUsuario";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("p_id_usuario", userId);
+            var rowsAffected = cmd.ExecuteNonQuery();
+            success = true;
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+
+        }
+        return success;
+    }
     public bool EditEmail(int userId, string email)
     {
         var success = false;
@@ -208,7 +252,7 @@ class Repository
         var success = false;
         try
         {
-            foreach(var id in discardIds)
+            foreach (var id in discardIds)
             {
                 var procedure = "eliminarArticulo";
                 var cmd = new MySqlCommand(procedure, Connection);

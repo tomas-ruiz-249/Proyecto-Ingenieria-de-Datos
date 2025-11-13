@@ -386,6 +386,7 @@ function logout() {
     currentUser.apellidos = "";
     currentUser.nombres = "";
     currentUser.correo = "";
+    
     articles = [];
     scrapingHistory = [];
     sources = [];
@@ -1212,27 +1213,32 @@ function removeSource(sourceId) {
     }
 }
 
-function deleteAccount() {
+//done
+async function deleteAccount() {
     // Simulate account deletion - remove all user data
     articles.length = 0;
     notifications.length = 0;
     scrapingHistory.length = 0;
     sources.length = 0;
+    var success = false;
     try{
-        const response = fetch(`/api/delete-user?id=${currentUser.id}`,
+        const response = await fetch(`/api/delete-user?id=${currentUser.id}`,
 			{
-				method: 'PATCH',
+				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
 				},
 		});
+        success = await response.json();
     }
     catch(error){
         console.error('error eliminando usuario', error)
     }
-    hideDeleteAccountModal();
-    showAlert('Cuenta y todos los datos asociados eliminados', 'info');
-    logout();
+    if (success){
+        hideDeleteAccountModal();
+        showAlert('Cuenta y todos los datos asociados eliminados', 'info');
+        logout();
+    }
 }
 
 //done
@@ -1247,11 +1253,58 @@ function hideChangePasswordModal() {
 }
 
 
-function changePassword(e) {
+async function changePassword(e) {
     e.preventDefault();
     // Simulate password change
-    hideChangePasswordModal();
-    showAlert('Contraseña actualizada exitosamente', 'success');
+    const oldPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPasswordChange').value;
+    var userId = -1;
+    try{
+        response = await fetch('/api/login',{
+            method: "POST",
+			headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                Correo: currentUser.correo,
+                Contraseña: oldPassword
+            })
+        });
+        userId = await response.json();
+    }
+    catch(error){
+        console.error('error verificando contraseña', error)
+    }
+    if(userId == -1){
+        showAlert('Contraseña actual incorrecta...', 'error');
+        return;
+    }
+    if(oldPassword != newPassword){
+        showAlert('Contraseña actualizada exitosamente', 'success');
+        try{
+            const response = await fetch(`/api/change-password?id=${currentUser.id}`,{
+                method: "PATCH",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newPassword)
+            });
+            const success = await response.json();
+            if(success){
+                hideChangePasswordModal();
+                return;
+            }
+            else{
+                throw "backend did not respond properly";
+            }
+        }
+        catch(error){
+            console.error("error al cambiar contraseña", error)
+        }
+    }
+    else{
+        showAlert('Contraseña actual incorrecta...', 'error');
+    }
     document.getElementById('changePasswordForm').reset();
 }
 

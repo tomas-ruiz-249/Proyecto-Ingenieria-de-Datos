@@ -159,6 +159,11 @@ class Server
                 EditEmail(context);
                 return;
             }
+            else if (request.Url.AbsolutePath == "/api/change-password")
+            {
+                ChangePassword(context);
+                return;
+            }
         }
         else if (request.HttpMethod == "DELETE")
         {
@@ -191,9 +196,44 @@ class Server
         }
     }
 
+    private void ChangePassword(HttpListenerContext context)
+    {
+        var request = context.Request;
+        var response = context.Response;
+        if (request.HasEntityBody)
+        {
+            var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+            int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+
+            var newPassword = JsonSerializer.Deserialize<string>(body);
+
+            var success = _repository.ChangePassword(id, newPassword);
+
+            byte[] buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(success));
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+        }
+    }
+
     private void DeleteUser(HttpListenerContext context)
     {
+        var request = context.Request;
+        var response = context.Response;
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
 
+        var success = _repository.DeleteUser(id);
+        Console.WriteLine(success);
+
+        byte[] buffer = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(success));
+        response.ContentLength64 = buffer.Length;
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
     }
 
     private void EditEmail(HttpListenerContext context)

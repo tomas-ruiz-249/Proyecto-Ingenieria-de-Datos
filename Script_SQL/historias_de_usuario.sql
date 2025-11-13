@@ -136,83 +136,83 @@ end$$
 delimiter ;
 
 #HU006 Filtrar articulos por rango de fechas
-Delimiter $$
-Create Procedure FiltroArticulosRangoFechas(IN idUsuarioP INT, IN fecha1 datetime, IN fecha2 datetime)
-Begin
-	select * from Articulo a
-    inner join Resultado r on r.id = a.idResultadoFK
-    where (fecha between fecha1 and fecha2) and (r.idUsuarioFK = idUsuarioP)
-    order by fecha asc;
-End $$
-Delimiter ;
+-- Delimiter $$
+-- Create Procedure FiltroArticulosRangoFechas(IN idUsuarioP INT, IN fecha1 datetime, IN fecha2 datetime)
+-- Begin
+-- 	select * from Articulo a
+--     inner join Resultado r on r.id = a.idResultadoFK
+--     where (fecha between fecha1 and fecha2) and (r.idUsuarioFK = idUsuarioP)
+--     order by fecha asc;
+-- End $$
+-- Delimiter ;
 
 #HU007 Filtrar Articulos por coincidencias en titulo
-Delimiter $$
-Create Procedure FiltroArticuloCoincidenciasTitulo(IN idUsuarioP INT, IN palabras VARCHAR(50))
-Begin
-	select a.* from Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    where titular like CONCAT('%', palabras, '%') and r.idUsuarioFK = idUsuarioP;
-End $$
-Delimiter ;
+-- Delimiter $$
+-- Create Procedure FiltroArticuloCoincidenciasTitulo(IN idUsuarioP INT, IN palabras VARCHAR(50))
+-- Begin
+-- 	select a.* from Articulo a
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     where titular like CONCAT('%', palabras, '%') and r.idUsuarioFK = idUsuarioP;
+-- End $$
+-- Delimiter ;
 
 
 -- HU008: Filtrar artículos por palabras clave
-DELIMITER $$
-CREATE PROCEDURE FiltrarArticulosPorPalabraClave (
-    IN idUsuarioP INT,
-    IN palabraClave VARCHAR(100)
-)
-BEGIN
-    SELECT 
-        a.id,
-        a.tema,
-        a.titular,
-        a.subtitulo,
-        a.cuerpo,
-        a.fecha,
-        a.favorito,
-        f.url AS urlFuente,
-        f.tipo AS tipoFuente,
-        f.nombre AS nombreFuente
-    FROM Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    INNER JOIN ArticuloDetalle ad ON a.id = ad.idArticuloFK
-    INNER JOIN Fuente f ON ad.idFuenteFK = f.id
-    WHERE 
-    (
-        a.titular LIKE CONCAT('%', palabraClave, '%')
-        OR a.subtitulo LIKE CONCAT('%', palabraClave, '%')
-        OR a.cuerpo LIKE CONCAT('%', palabraClave, '%')
-    )
-        AND (r.idUsuarioFK = idUsuarioP)
-    ORDER BY a.fecha DESC;
-END $$
-DELIMITER ;
+-- DELIMITER $$
+-- CREATE PROCEDURE FiltrarArticulosPorPalabraClave (
+--     IN idUsuarioP INT,
+--     IN palabraClave VARCHAR(100)
+-- )
+-- BEGIN
+--     SELECT 
+--         a.id,
+--         a.tema,
+--         a.titular,
+--         a.subtitulo,
+--         a.cuerpo,
+--         a.fecha,
+--         a.favorito,
+--         f.url AS urlFuente,
+--         f.tipo AS tipoFuente,
+--         f.nombre AS nombreFuente
+--     FROM Articulo a
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     INNER JOIN ArticuloDetalle ad ON a.id = ad.idArticuloFK
+--     INNER JOIN Fuente f ON ad.idFuenteFK = f.id
+--     WHERE 
+--     (
+--         a.titular LIKE CONCAT('%', palabraClave, '%')
+--         OR a.subtitulo LIKE CONCAT('%', palabraClave, '%')
+--         OR a.cuerpo LIKE CONCAT('%', palabraClave, '%')
+--     )
+--         AND (r.idUsuarioFK = idUsuarioP)
+--     ORDER BY a.fecha DESC;
+-- END $$
+-- DELIMITER ;
 
 #HU009 Filtrar Articulos por tema
-Delimiter $$
-Create Procedure FiltroArticuloTema(IN idUsuarioP INT, IN temabuscar VARCHAR(100))
-Begin
-	select * from Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    where tema = temabuscar and r.idUsuarioFK = idUsuarioP;
-End $$
-Delimiter ;
+-- Delimiter $$
+-- Create Procedure FiltroArticuloTema(IN idUsuarioP INT, IN temabuscar VARCHAR(100))
+-- Begin
+-- 	select * from Articulo a
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     where tema = temabuscar and r.idUsuarioFK = idUsuarioP;
+-- End $$
+-- Delimiter ;
 
 
 #HU010 Filtrar Articulos la fuente correspondiente
-Delimiter $$
-Create Procedure FiltroArticuloFuente(IN idUsuarioP INT, IN fuentes VARCHAR(100))
-Begin
-	select * from Articulo a
-    Inner Join ArticuloDetalle ad on a.id = ad.idArticuloFK
-    Inner Join Fuente f on ad.idFuenteFK = f.id
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    Where f.nombre = fuentes AND r.idUsuarioFK = idUsuarioP
-    Order by a.fecha desc;
-End $$
-Delimiter ;
+-- Delimiter $$
+-- Create Procedure FiltroArticuloFuente(IN idUsuarioP INT, IN fuentes VARCHAR(100))
+-- Begin
+-- 	select * from Articulo a
+--     Inner Join ArticuloDetalle ad on a.id = ad.idArticuloFK
+--     Inner Join Fuente f on ad.idFuenteFK = f.id
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     Where f.nombre = fuentes AND r.idUsuarioFK = idUsuarioP
+--     Order by a.fecha desc;
+-- End $$
+-- Delimiter ;
 
 -- HU011: Evitar articulos duplicados
 DELIMITER $$
@@ -403,13 +403,10 @@ DELIMITER ;
 
 #HU025 Actualizar contraseña del usuario
 Delimiter $$
-Create Procedure ActualizarContrasena(IN xcorreo VARCHAR(50),IN xcontrasena VARCHAR(30),IN xnuevacontrasena VARCHAR(30), OUT xmensaje VARCHAR(200))
+Create Procedure ActualizarContrasena(IN xnuevacontrasena VARCHAR(30), IN idUsuario INT)
 Begin
-	IF EXISTS(Select 1 from Usuario where correo = xcorreo and contraseña = xcontrasena) THEN 
-        update Usuario set contraseña = xnuevacontrasena where correo = xcorreo;
-		Set xmensaje = "Se actualizo la contraseña correctamente";
-    ELSE 
-		Set xmensaje = "Credenciales incorrectas, verifica que esten bien escritas";
+	IF EXISTS(Select 1 from Usuario where id = idUsuario) THEN 
+        update Usuario set contraseña = xnuevacontrasena  where id = idUsuario;
 	End IF;
 End $$
 Delimiter ;
@@ -553,7 +550,7 @@ BEGIN
 END $$
 DELIMITER ;
 
-
+#aqui
 #HU036 Filtrar articulos por busqueda avanzada 
 DELIMITER $$
 Create Procedure FiltroArticuloBusquedaAvanzada(
