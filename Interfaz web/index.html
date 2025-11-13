@@ -1,581 +1,428 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="h-full">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>LexCrawler - Desarrollo</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewsOne - Gestor de Artículos</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="gradient-bg min-h-screen">
-
-  <!-- =========================
-       LOGIN / PANTALLA INICIAL
-       ========================= -->
-  <section id="login-section" class="flex items-center justify-center min-h-screen p-4">
-    <div class="glass-effect rounded-2xl p-8 shadow-2xl w-full max-w-md login-animation">
-      <header class="text-center mb-8">
-        <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
+<body class="h-full bg-gradient-to-br from-slate-50 to-blue-50">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">📰 NewsScrap</h1>
+                <p class="text-gray-600">Gestor inteligente de artículos de noticias</p>
+            </div>
+            
+            <form id="loginForm" class="mt-8 space-y-6 bg-white p-8 rounded-xl shadow-lg">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Correo</label>
+                    <input id="email" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ingresa tu correo">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                    <input id="password" type="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ingresa tu contraseña">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                    Iniciar Sesión
+                </button>
+                <div class="text-center">
+                    <button type="button" id="showRegister" class="text-blue-600 hover:text-blue-800 text-sm">
+                        ¿No tienes cuenta? Regístrate aquí
+                    </button>
+                </div>
+            </form>
         </div>
-        <h1 class="text-2xl font-bold text-white mb-2">Iniciar Sesión</h1>
-        <p class="text-white text-opacity-80">Bienvenido a LexCrawler — Modo desarrollo disponible</p>
-      </header>
-
-      <form id="loginForm" class="space-y-6">
-        <div>
-          <label for="email" class="block text-white text-sm font-medium mb-2">Correo electrónico</label>
-          <input type="email" id="email" class="input-style" placeholder="tu@email.com" required>
-        </div>
-
-        <div>
-          <label for="password" class="block text-white text-sm font-medium mb-2">Contraseña</label>
-          <input type="password" id="password" class="input-style" placeholder="••••••••" required>
-        </div>
-
-        <button type="submit"
-          class="w-full bg-white text-purple-600 font-semibold py-3 px-4 rounded-lg hover:bg-opacity-90 transition-all duration-200">
-          Iniciar sesión
-        </button>
-      </form>
     </div>
 
-    <!-- Botón flotante Modo Desarrollador -->
-    <button id="devModeBtn"
-      class="fixed bottom-6 right-6 bg-purple-600 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:scale-105 transition-all duration-200">
-      ⚙️
-    </button>
-  </section>
+    <!-- Register Screen -->
+    <div id="registerScreen" class="hidden min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-gray-900 mb-2">📰 NewsScrap</h1>
+                <p class="text-gray-600">Crear nueva cuenta</p>
+            </div>
+            
+            <form id="registerForm" class="mt-8 space-y-6 bg-white p-8 rounded-xl shadow-lg">
+                <div>
+                    <label for="newNames" class="block text-sm font-medium text-gray-700 mb-2">Nombres</label>
+                    <input id="newNames" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Escribe tus nombres">
+                </div>
+                <div>
+                    <label for="newLastNames" class="block text-sm font-medium text-gray-700 mb-2">Apellidos</label>
+                    <input id="newLastNames" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Escribe tus apellidos">
+                </div>
+                <div>
+                    <label for="newEmail" class="block text-sm font-medium text-gray-700 mb-2">Correo</label>
+                    <input id="newEmail" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Elige un correo">
+                </div>
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
+                    <input id="newPassword" type="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Crea una contraseña">
+                </div>
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2">Confirmar Contraseña</label>
+                    <input id="confirmPassword" type="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Confirma tu contraseña">
+                </div>
+                <button type="submit" class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium">
+                    Crear Cuenta
+                </button>
+                <div class="text-center">
+                    <button type="button" id="showLogin" class="text-blue-600 hover:text-blue-800 text-sm">
+                        ¿Ya tienes cuenta? Inicia sesión
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-  <!-- =========================
-       DASHBOARD (completo)
-       ========================= -->
-  <!-- Copiado e integrado desde tu dashboard original -->
-  <section id="dashboard-section" class="hidden">
-    <!-- Header -->
-    <header class="glass-effect border-b border-white border-opacity-20 px-6 py-4">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="hidden min-h-full">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center space-x-4">
+                        <h1 class="text-2xl font-bold text-gray-900">📰 NewsScrap</h1>
+                        <div class="flex items-center space-x-4 text-sm text-gray-600">
+                            <span id="totalArticles" class="bg-blue-100 px-3 py-1 rounded-full">0 artículos</span>
+                            <span id="totalSources" class="bg-green-100 px-3 py-1 rounded-full">0 fuentes</span>
+                        </div>
                     </div>
-                    <h1 class="text-xl font-bold text-white">LexCrawler</h1>
+                    <div class="flex items-center space-x-4">
+                        <button id="userMenuBtn" class="flex items-center space-x-2 text-gray-700 hover:text-gray-900">
+                            <span id="currentUser">Usuario</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="flex items-center space-x-4">
-                <span id="welcomeUser" class="text-white text-opacity-90">Bienvenido, Felipe</span>
-                <button id="logoutBtn" class="flex items-center space-x-2 bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded-lg text-white transition-all duration-200">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                    </svg>
-                    <span>Cerrar sesión</span>
+        </header>
+
+        <!-- User Menu Dropdown -->
+        <div id="userMenu" class="hidden absolute right-4 top-16 bg-white rounded-lg shadow-lg border border-gray-200 z-50 min-w-48">
+            <div class="py-2">
+                <button id="editProfileBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    Editar Perfil
+                </button>
+                <button id="changePasswordBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    Cambiar Contraseña
+                </button>
+                <button id="deleteAccountBtn" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                    Eliminar Cuenta
+                </button>
+                <hr class="my-1">
+                <button id="logoutBtn" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    Cerrar Sesión
                 </button>
             </div>
         </div>
-    </header>
 
-    <div class="flex">
-        <!-- Sidebar -->
-        <aside class="w-64 glass-effect border-r border-white border-opacity-20 min-h-screen">
-            <nav class="p-4">
-                <ul class="space-y-2">
-                    <li>
-                        <button class="sidebar-item active w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white transition-all duration-200" data-section="articulos">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
-                            </svg>
-                            <span>Artículos</span>
-                        </button>
-                    </li>
-                    <li>
-                        <button class="sidebar-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white transition-all duration-200" data-section="busqueda">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                            <span>Búsqueda avanzada</span>
-                        </button>
-                    </li>
-                    <li>
-                        <button class="sidebar-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white transition-all duration-200" data-section="scraping">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                            </svg>
-                            <span>Resultados de scraping</span>
-                        </button>
-                    </li>
-                    <li>
-                        <button class="sidebar-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white transition-all duration-200" data-section="notificaciones">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4.868 19.462A17.013 17.013 0 003 12c0-9.75 8.25-9.75 8.25-9.75s8.25 0 8.25 9.75a17.013 17.013 0 00-1.868 7.462"></path>
-                            </svg>
-                            <span>Notificaciones</span>
-                            <span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">3</span>
-                        </button>
-                    </li>
-                    <li>
-                        <button class="sidebar-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white transition-all duration-200" data-section="configuracion">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                            <span>Configuración</span>
-                        </button>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
+        <!-- Navigation Tabs -->
+        <nav class="bg-white border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex space-x-8">
+                    <button class="tab-btn active py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600" data-tab="articles">
+                        Artículos
+                    </button>
+                    <button class="tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="favorites">
+                        Favoritos
+                    </button>
+                    <button class="tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="scraping">
+                        Scraping
+                    </button>
+                    <button class="tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="notifications">
+                        Notificaciones
+                        <span id="unreadCount" class="ml-1 bg-red-500 text-white text-xs px-2 py-1 rounded-full hidden">0</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
 
         <!-- Main Content -->
-        <main class="flex-1 p-6">
-            <!-- Artículos Section -->
-            <div id="articulos-section" class="section fade-in">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-white mb-2">Gestión de Artículos</h2>
-                    <p class="text-white text-opacity-80">Total de artículos almacenados: 247</p>
-                </div>
-
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Articles Tab -->
+            <div id="articlesTab" class="tab-content">
                 <!-- Filters -->
-                <div class="glass-effect rounded-xl p-6 mb-6">
-                    <h3 class="text-lg font-semibold text-white mb-4">Filtros de búsqueda</h3>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Filtros de Búsqueda</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <label for="dateFrom" class="block text-white text-sm font-medium mb-2">Fecha desde</label>
-                            <input type="date" id="dateFrom" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
+                            <label for="titleFilter" class="block text-sm font-medium text-gray-700 mb-2">Título</label>
+                            <input id="titleFilter" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Buscar por título">
                         </div>
                         <div>
-                            <label for="dateTo" class="block text-white text-sm font-medium mb-2">Fecha hasta</label>
-                            <input type="date" id="dateTo" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
+                            <label for="keywordFilter" class="block text-sm font-medium text-gray-700 mb-2">Palabras Clave</label>
+                            <input id="keywordFilter" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Palabras clave">
                         </div>
                         <div>
-                            <label for="tema" class="block text-white text-sm font-medium mb-2">Tema</label>
-                            <select id="tema" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                                <option value="">Todos los temas</option>
-                                <option value="civil">Derecho Civil</option>
-                                <option value="penal">Derecho Penal</option>
-                                <option value="laboral">Derecho Laboral</option>
-                                <option value="comercial">Derecho Comercial</option>
+                            <label for="categoryFilter" class="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+                            <select id="categoryFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Todas las categorías</option>
+                                <option value="politica">Política</option>
+                                <option value="economia">Economía</option>
+                                <option value="tecnologia">Tecnología</option>
+                                <option value="deportes">Deportes</option>
+                                <option value="salud">Salud</option>
                             </select>
                         </div>
                         <div>
-                            <label for="fuente" class="block text-white text-sm font-medium mb-2">Fuente</label>
-                            <select id="fuente" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
+                            <label for="sourceFilter" class="block text-sm font-medium text-gray-700 mb-2">Fuente</label>
+                            <select id="sourceFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">Todas las fuentes</option>
-                                <option value="corte-suprema">Corte Suprema</option>
-                                <option value="tribunal-constitucional">Tribunal Constitucional</option>
-                                <option value="gaceta-juridica">Gaceta Jurídica</option>
                             </select>
                         </div>
                     </div>
-                    <div class="mt-4">
-                        <label for="keywords" class="block text-white text-sm font-medium mb-2">Palabras clave</label>
-                        <input type="text" id="keywords" placeholder="Buscar por palabras clave..." class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-white placeholder-opacity-70 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label for="dateFrom" class="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+                            <input id="dateFrom" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="dateTo" class="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+                            <input id="dateTo" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
                     </div>
-                    <div class="flex space-x-3 mt-4">
-                        <button class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-200">Aplicar filtros</button>
-                        <button class="bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all duration-200">Limpiar</button>
+                    <div class="flex justify-between items-center mt-4">
+                        <button id="applyFilters" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            Aplicar Filtros
+                        </button>
+                        <button id="clearFilters" class="text-gray-600 hover:text-gray-800">
+                            Limpiar Filtros
+                        </button>
                     </div>
                 </div>
 
                 <!-- Articles List -->
-                <div class="space-y-4">
-                    <div class="glass-effect rounded-xl p-6 card-hover transition-all duration-200">
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <h4 class="text-lg font-semibold text-white mb-2">Sentencia sobre responsabilidad civil extracontractual</h4>
-                                <div class="flex items-center space-x-4 text-white text-opacity-70 text-sm mb-3">
-                                    <span>📰 Corte Suprema</span>
-                                    <span>📅 15 Mar 2024</span>
-                                    <span>🏷️ Derecho Civil</span>
-                                </div>
-                                <p class="text-white text-opacity-80 text-sm">Análisis de la responsabilidad civil en casos de daño extracontractual según la jurisprudencia reciente...</p>
-                            </div>
-                            <div class="flex space-x-2 ml-4">
-                                <button class="view-article bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">Ver</button>
-                                <button class="favorite-btn bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">⭐</button>
-                                <button class="delete-article bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">🗑️</button>
-                            </div>
-                        </div>
-                    </div>
+                <div id="articlesList" class="space-y-4">
+                    <!-- Articles will be populated here -->
+                </div>
+            </div>
 
-                    <div class="glass-effect rounded-xl p-6 card-hover transition-all duration-200">
-                        <div class="flex items-start justify-between">
-                            <div class="flex-1">
-                                <h4 class="text-lg font-semibold text-white mb-2">Nuevo precedente en materia laboral</h4>
-                                <div class="flex items-center space-x-4 text-white text-opacity-70 text-sm mb-3">
-                                    <span>📰 Tribunal Constitucional</span>
-                                    <span>📅 12 Mar 2024</span>
-                                    <span>🏷️ Derecho Laboral</span>
-                                </div>
-                                <p class="text-white text-opacity-80 text-sm">Establecimiento de criterios para la interpretación de contratos laborales en el sector público...</p>
-                            </div>
-                            <div class="flex space-x-2 ml-4">
-                                <button class="view-article bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">Ver</button>
-                                <button class="favorite-btn bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">⭐</button>
-                                <button class="delete-article bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">🗑️</button>
-                            </div>
-                        </div>
+            <!-- Favorites Tab -->
+            <div id="favoritesTab" class="tab-content hidden">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Artículos Favoritos</h3>
+                    <div id="favoritesList" class="space-y-4">
+                        <!-- Favorites will be populated here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Búsqueda Section -->
-            <div id="busqueda-section" class="section hidden fade-in">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-white mb-2">Búsqueda Avanzada</h2>
-                    <p class="text-white text-opacity-80">Encuentra artículos específicos con múltiples criterios</p>
-                </div>
-
-                <div class="glass-effect rounded-xl p-6">
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="space-y-4">
-                            <div>
-                                <label for="searchTitle" class="block text-white text-sm font-medium mb-2">Título del artículo</label>
-                                <input type="text" id="searchTitle" placeholder="Buscar en títulos..." class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-white placeholder-opacity-70 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                            </div>
-                            <div>
-                                <label for="searchContent" class="block text-white text-sm font-medium mb-2">Contenido</label>
-                                <textarea id="searchContent" rows="3" placeholder="Buscar en el contenido..." class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-white placeholder-opacity-70 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"></textarea>
-                            </div>
-                            <div>
-                                <label for="searchAuthor" class="block text-white text-sm font-medium mb-2">Autor/Magistrado</label>
-                                <input type="text" id="searchAuthor" placeholder="Nombre del autor..." class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-white placeholder-opacity-70 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                            </div>
-                        </div>
-                        <div class="space-y-4">
-                            <div>
-                                <label for="searchDateRange" class="block text-white text-sm font-medium mb-2">Rango de fechas</label>
-                                <div class="flex space-x-2">
-                                    <input type="date" class="flex-1 px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                                    <input type="date" class="flex-1 px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                                </div>
-                            </div>
-                            <div>
-                                <label for="searchTags" class="block text-white text-sm font-medium mb-2">Etiquetas</label>
-                                <input type="text" id="searchTags" placeholder="Separar con comas..." class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-white placeholder-opacity-70 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                            </div>
-                            <div>
-                                <label class="block text-white text-sm font-medium mb-2">Opciones adicionales</label>
-                                <div class="space-y-2">
-                                    <label class="flex items-center">
-                                        <input type="checkbox" class="w-4 h-4 text-white bg-transparent border-white border-opacity-50 rounded focus:ring-white focus:ring-opacity-50">
-                                        <span class="ml-2 text-white text-opacity-80 text-sm">Solo favoritos</span>
-                                    </label>
-                                    <label class="flex items-center">
-                                        <input type="checkbox" class="w-4 h-4 text-white bg-transparent border-white border-opacity-50 rounded focus:ring-white focus:ring-opacity-50">
-                                        <span class="ml-2 text-white text-opacity-80 text-sm">Búsqueda exacta</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex space-x-3 mt-6">
-                        <button class="bg-white text-purple-600 px-6 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-200">Buscar</button>
-                        <button class="bg-white bg-opacity-20 text-white px-6 py-2 rounded-lg hover:bg-opacity-30 transition-all duration-200">Limpiar</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Scraping Results Section -->
-            <div id="scraping-section" class="section hidden fade-in">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-white mb-2">Control de Scraping</h2>
-                    <p class="text-white text-opacity-80">Gestiona los procesos de extracción de datos</p>
-                </div>
-
-                <!-- Scraping Controls -->
-                <div class="glass-effect rounded-xl p-6 mb-6">
-                    <h3 class="text-lg font-semibold text-white mb-4">Panel de Control</h3>
+            <!-- Scraping Tab -->
+            <div id="scrapingTab" class="tab-content hidden">
+                <!-- Sources Management Section -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">🌐 Gestión de Fuentes</h3>
+                    <p class="text-gray-600 text-sm mb-4">Configura las fuentes de noticias que se utilizarán durante el proceso de scraping.</p>
                     
-                    <!-- Control Buttons and Status -->
-                    <div class="flex items-center justify-between mb-6">
-                        <div class="flex space-x-4">
-                            <button id="startScrapingBtn" class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center space-x-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h1m4 0h1m-6-8h1m4 0h1M9 6h6a2 2 0 012 2v8a2 2 0 01-2 2H9a2 2 0 01-2-2V8a2 2 0 012-2z"></path>
-                                </svg>
-                                <span>Iniciar Scraping</span>
-                            </button>
-                            <button id="stopScrapingBtn" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center space-x-2 opacity-50" disabled>
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h6v4H9z"></path>
-                                </svg>
-                                <span>Detener</span>
+                    <form id="addSourceForm" class="flex gap-4 mb-6">
+                        <div class="flex-1">
+                            <label for="sourceName" class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Fuente</label>
+                            <input id="sourceName" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej: El País">
+                        </div>
+                        <div class="flex-1">
+                            <label for="sourceUrl" class="block text-sm font-medium text-gray-700 mb-2">URL de la Fuente</label>
+                            <input id="sourceUrl" type="url" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://elpais.com">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                ➕ Agregar Fuente
                             </button>
                         </div>
-                        
-                        <!-- Articles Counter -->
-                        <div class="glass-effect px-6 py-3 rounded-lg">
-                            <div class="text-center">
-                                <div class="text-2xl font-bold text-white" id="articlesCount">0</div>
-                                <div class="text-white text-opacity-70 text-sm">Artículos extraídos</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- URL Input -->
-                    <div class="mb-4">
-                        <label for="scrapingUrl" class="block text-white text-sm font-medium mb-2">URL para Scraping</label>
-                        <div class="flex space-x-3">
-                            <input 
-                                type="url" 
-                                id="scrapingUrl" 
-                                placeholder="https://ejemplo.com/articulos-juridicos" 
-                                class="flex-1 px-4 py-3 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white placeholder-white placeholder-opacity-70 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
-                            >
-                            <button id="addUrlBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-lg transition-all duration-200">
-                                Agregar URL
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Status Display -->
-                    <div id="scrapingStatus" class="hidden">
-                        <div class="flex items-center space-x-3 p-4 bg-blue-500 bg-opacity-20 rounded-lg border border-blue-400 border-opacity-50">
-                            <div class="w-4 h-4 bg-blue-400 rounded-full animate-pulse"></div>
-                            <div>
-                                <div class="text-white font-semibold">Scraping en progreso...</div>
-                                <div class="text-white text-opacity-70 text-sm" id="currentUrl">Procesando: https://ejemplo.com</div>
-                            </div>
-                        </div>
+                    </form>
+                    
+                    <div id="sourcesList" class="space-y-3">
+                        <!-- Sources will be populated here -->
                     </div>
                 </div>
 
-                <!-- URLs List -->
-                <div class="glass-effect rounded-xl p-6 mb-6">
-                    <h3 class="text-lg font-semibold text-white mb-4">URLs Configuradas</h3>
-                    <div id="urlsList" class="space-y-3">
-                        <div class="flex items-center justify-between p-3 bg-white bg-opacity-10 rounded-lg">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-                                <span class="text-white text-sm">https://cortesuprema.gob.pe/jurisprudencia</span>
-                            </div>
-                            <div class="flex space-x-2">
-                                <span class="text-green-400 text-xs bg-green-500 bg-opacity-20 px-2 py-1 rounded">Activa</span>
-                                <button class="text-red-400 hover:text-red-300 text-sm">Eliminar</button>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between p-3 bg-white bg-opacity-10 rounded-lg">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
-                                <span class="text-white text-sm">https://tc.gob.pe/jurisprudencia</span>
-                            </div>
-                            <div class="flex space-x-2">
-                                <span class="text-gray-400 text-xs bg-gray-500 bg-opacity-20 px-2 py-1 rounded">Inactiva</span>
-                                <button class="text-red-400 hover:text-red-300 text-sm">Eliminar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Scraping History -->
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-white mb-4">Historial de Scraping</h3>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="glass-effect rounded-xl p-6 card-hover transition-all duration-200">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="w-3 h-3 bg-green-400 rounded-full"></div>
-                                <div>
-                                    <h4 class="text-white font-semibold">Scraping exitoso - Corte Suprema</h4>
-                                    <p class="text-white text-opacity-70 text-sm">15 Mar 2024, 14:30 - Usuario: Felipe</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <span class="text-white bg-green-500 bg-opacity-20 px-3 py-1 rounded-full text-sm">47 artículos</span>
-                                <div class="flex space-x-2">
-                                    <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">Ver detalle</button>
-                                    <button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">Eliminar</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-effect rounded-xl p-6 card-hover transition-all duration-200">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="w-3 h-3 bg-red-400 rounded-full"></div>
-                                <div>
-                                    <h4 class="text-white font-semibold">Scraping fallido - Tribunal Constitucional</h4>
-                                    <p class="text-white text-opacity-70 text-sm">14 Mar 2024, 09:15 - Usuario: Felipe</p>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <span class="text-white bg-red-500 bg-opacity-20 px-3 py-1 rounded-full text-sm">Error de conexión</span>
-                                <div class="flex space-x-2">
-                                    <button class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">Reintentar</button>
-                                    <button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition-all duration-200">Eliminar</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Notifications Section -->
-            <div id="notificaciones-section" class="section hidden fade-in">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-white mb-2">Centro de Notificaciones</h2>
-                    <p class="text-white text-opacity-80">Mensajes y alertas del sistema</p>
-                </div>
-
-                <div class="glass-effect rounded-xl p-6 mb-6">
-                    <div class="flex space-x-4">
-                        <button class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-200">Todas</button>
-                        <button class="bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all duration-200">No leídas</button>
-                        <button class="bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all duration-200">Errores</button>
-                        <button class="bg-white bg-opacity-20 text-white px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all duration-200">Éxito</button>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="glass-effect rounded-xl p-6 border-l-4 border-green-400">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-2 h-2 bg-green-400 rounded-full mt-2"></div>
-                                <div>
-                                    <h4 class="text-white font-semibold">Scraping completado exitosamente</h4>
-                                    <p class="text-white text-opacity-70 text-sm mt-1">Se han extraído 47 nuevos artículos de la Corte Suprema</p>
-                                    <span class="text-white text-opacity-50 text-xs">Hace 2 horas</span>
-                                </div>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button class="text-white text-opacity-70 hover:text-opacity-100 text-sm">Marcar como leída</button>
-                                <button class="text-red-400 hover:text-red-300 text-sm">Eliminar</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-effect rounded-xl p-6 border-l-4 border-red-400">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-2 h-2 bg-red-400 rounded-full mt-2"></div>
-                                <div>
-                                    <h4 class="text-white font-semibold">Error en proceso de scraping</h4>
-                                    <p class="text-white text-opacity-70 text-sm mt-1">No se pudo conectar con el servidor del Tribunal Constitucional</p>
-                                    <span class="text-white text-opacity-50 text-xs">Hace 5 horas</span>
-                                </div>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button class="text-white text-opacity-70 hover:text-opacity-100 text-sm">Marcar como leída</button>
-                                <button class="text-red-400 hover:text-red-300 text-sm">Eliminar</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-effect rounded-xl p-6 border-l-4 border-blue-400">
-                        <div class="flex items-start justify-between">
-                            <div class="flex items-start space-x-3">
-                                <div class="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
-                                <div>
-                                    <h4 class="text-white font-semibold">Nuevo artículo favorito agregado</h4>
-                                    <p class="text-white text-opacity-70 text-sm mt-1">Has marcado como favorito: "Sentencia sobre responsabilidad civil"</p>
-                                    <span class="text-white text-opacity-50 text-xs">Hace 1 día</span>
-                                </div>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button class="text-white text-opacity-70 hover:text-opacity-100 text-sm">Marcar como leída</button>
-                                <button class="text-red-400 hover:text-red-300 text-sm">Eliminar</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Configuration Section -->
-            <div id="configuracion-section" class="section hidden fade-in">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-white mb-2">Configuración de Cuenta</h2>
-                    <p class="text-white text-opacity-80">Gestiona tu información personal y preferencias</p>
-                </div>
-
+                <!-- Scraping Control Section -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Personal Data -->
-                    <div class="glass-effect rounded-xl p-6">
-                        <h3 class="text-lg font-semibold text-white mb-4">Datos Personales</h3>
-                        <form class="space-y-4">
-                            <div>
-                                <label for="configNombres" class="block text-white text-sm font-medium mb-2">Nombres</label>
-                                <input type="text" id="configNombres" value="Felipe" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                            </div>
-                            <div>
-                                <label for="configApellidos" class="block text-white text-sm font-medium mb-2">Apellidos</label>
-                                <input type="text" id="configApellidos" value="García Rodríguez" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                            </div>
-                            <div>
-                                <label for="configEmail" class="block text-white text-sm font-medium mb-2">Correo electrónico</label>
-                                <input type="email" id="configEmail" value="felipe.garcia@email.com" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                            </div>
-                            <button type="submit" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-200">✏️ Actualizar datos</button>
-                        </form>
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">🚀 Control de Scraping</h3>
+                        <div class="mb-4 p-3 bg-blue-50 rounded-lg">
+                            <p class="text-blue-800 text-sm">
+                                <strong id="activeSources">0 fuentes activas</strong> configuradas para scraping
+                            </p>
+                        </div>
+                        <button id="startScraping" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium mb-4">
+                            🚀 Iniciar Scraping
+                        </button>
+                        <div id="scrapingStatus" class="text-center text-gray-600">
+                            Listo para iniciar
+                        </div>
                     </div>
-
-                    <!-- Security Settings -->
-                    <div class="glass-effect rounded-xl p-6">
-                        <h3 class="text-lg font-semibold text-white mb-4">Seguridad</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label for="currentPassword" class="block text-white text-sm font-medium mb-2">Contraseña actual</label>
-                                <input type="password" id="currentPassword" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                            </div>
-                            <div>
-                                <label for="newPassword" class="block text-white text-sm font-medium mb-2">Nueva contraseña<label>
-                                <label for="newPassword" class="block text-white text-sm font-medium mb-2">Nueva contraseña</label>
-                                <input type="password" id="newPassword" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                            </div>
-                            <div>
-                                <label for="confirmPassword" class="block text-white text-sm font-medium mb-2">Confirmar nueva contraseña</label>
-                                <input type="password" id="confirmPassword" class="w-full px-3 py-2 bg-white bg-opacity-20 border border-white border-opacity-30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50">
-                            </div>
-                            <button type="button" class="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-opacity-90 transition-all duration-200">
-                                🔒 Cambiar contraseña
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">📊 Historial de Scraping</h3>
+                        <div id="scrapingHistory" class="space-y-3 max-h-64 overflow-y-auto">
+                            <!-- Scraping history will be populated here -->
+                        </div>
+                        <div class="mt-4">
+                            <button id="clearOldLogs" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                🗑️ Limpiar Logs Antiguos
                             </button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Preferencias -->
-                <div class="glass-effect rounded-xl p-6 mt-6">
-                    <h3 class="text-lg font-semibold text-white mb-4">Preferencias del Sistema</h3>
-                    <div class="space-y-4">
-                        <div class="flex items-center justify-between">
-                            <span class="text-white text-opacity-90">Tema oscuro</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-400 rounded-full peer peer-checked:bg-purple-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                            </label>
+            <!-- Notifications Tab -->
+            <div id="notificationsTab" class="tab-content hidden">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Centro de Notificaciones</h3>
+                        <div class="flex space-x-2">
+                            <button id="markAllRead" class="bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                Marcar todas como leídas
+                            </button>
+                            <button id="clearAllNotifications" class="bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                Limpiar todas
+                            </button>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-white text-opacity-90">Notificaciones por correo</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-400 rounded-full peer peer-checked:bg-purple-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                            </label>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-white text-opacity-90">Modo desarrollador</span>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" checked class="sr-only peer">
-                                <div class="w-11 h-6 bg-gray-400 rounded-full peer peer-checked:bg-purple-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                            </label>
-                        </div>
+                    </div>
+                    
+                    <!-- Notification Filters -->
+                    <div class="flex space-x-4 mb-4">
+                        <select id="notificationStatusFilter" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todos los estados</option>
+                            <option value="0">Éxito</option>
+                            <option value="1">Error</option>
+                            <option value="2">Información</option>
+                            <option value="3">Advertencia</option>
+                        </select>
+                        <select id="notificationReadFilter" class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Todas</option>
+                            <option value="0">No leídas</option>
+                            <option value="1">Leídas</option>
+                        </select>
+                        <button id="applyNotificationFilters" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            Filtrar
+                        </button>
+                    </div>
+                    
+                    <div id="notificationsList" class="space-y-3 max-h-96 overflow-y-auto">
+                        <!-- Notifications will be populated here -->
                     </div>
                 </div>
             </div>
         </main>
     </div>
-  </section>
 
-  <!-- Vincular el script -->
-  <script src="script.js"></script>
-</body>
+    <!-- Notifications -->
+    <div id="notifications" class="fixed top-4 right-4 z-50 space-y-2">
+        <!-- Notifications will appear here -->
+    </div>
+
+    <!-- Modals -->
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Cambiar Contraseña</h3>
+            <form id="changePasswordForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-2">Contraseña Actual</label>
+                        <input id="currentPassword" type="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="newPasswordChange" class="block text-sm font-medium text-gray-700 mb-2">Nueva Contraseña</label>
+                        <input id="newPasswordChange" type="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelPasswordChange" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Cambiar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <div id="deleteAccountModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-medium text-red-600 mb-4">⚠️ Eliminar Cuenta</h3>
+            <p class="text-gray-600 mb-4">Esta acción eliminará permanentemente tu cuenta y todos los artículos asociados. ¿Estás seguro?</p>
+            <div class="flex justify-end space-x-3">
+                <button id="cancelDeleteAccount" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                    Cancelar
+                </button>
+                <button id="confirmDeleteAccount" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                    Eliminar Cuenta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Editar Perfil</h3>
+            <form id="editProfileForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="nombres" class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                        <input id="nombres" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="apellidos" class="block text-sm font-medium text-gray-700 mb-2">Apellidos</label>
+                        <input id="apellidos" type="text" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label for="editEmail" class="block text-sm font-medium text-gray-700 mb-2">Correo Electrónico</label>
+                        <input id="editEmail" type="email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancelProfileEdit" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Article Detail Modal -->
+    <div id="articleDetailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4">
+                <h3 id="articleDetailTitle" class="text-xl font-bold text-gray-900"></h3>
+                <button id="closeArticleDetail" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="articleDetailContent" class="prose max-w-none">
+                <!-- Article content will be populated here -->
+            </div>
+            <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                <div id="articleDetailMeta" class="flex items-center space-x-4 text-sm text-gray-500">
+                    <!-- Article metadata will be populated here -->
+                </div>
+                <div class="flex space-x-2">
+                    <button id="openArticleLink" class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        🔗 Abrir Enlace
+                    </button>
+                    <button id="toggleArticleFavorite" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                        ❤️ Favorito
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </html>
-

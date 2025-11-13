@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Text;
 using HtmlAgilityPack;
 
@@ -43,8 +42,7 @@ class Parser
         catch (Exception e)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("(ERROR PARSING)");
-            Console.WriteLine(e.ToString());
+            Console.WriteLine(e.Message);
             Console.ForegroundColor = ConsoleColor.White;
             return false;
         }
@@ -86,11 +84,11 @@ class Parser
             //div[contains(@class, 'post-content')]//p
             "
         );
-        
-        if(cuerpoNodes != null)
+
+        if (cuerpoNodes != null)
         {
             var sb = new StringBuilder();
-            foreach(var node in cuerpoNodes)
+            foreach (var node in cuerpoNodes)
             {
                 // Console.ForegroundColor = ConsoleColor.Cyan;
                 // Console.WriteLine("--" + node.InnerText + "--");
@@ -103,9 +101,15 @@ class Parser
         {
             cuerpo = "";
         }
-        
+
         var articulo = new Articulo(tema, titular, subtitulo, cuerpo, fecha, idResult, favorito);
         return articulo;
+    }
+    
+    public Fuente ParseSource()
+    {
+        var fuente = new Fuente(_currentUrl.AbsoluteUri, "noticias", _currentUrl.AbsoluteUri);
+        return fuente;
     }
 
     public List<Uri> ExtractUrls()
