@@ -482,24 +482,24 @@ end$$
 delimiter ;
 
 #HU031 Visualizar articulos almacenados
-DELIMITER $$
-CREATE PROCEDURE VisualizarAlmacenados(IN idUsuarioP INT, OUT xmensaje varchar(100))
-BEGIN
-    DECLARE v_numArticulos INT;
-    SELECT COUNT(*) into v_numArticulos FROM Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    WHERE r.idUsuarioFK = idUsuarioP;
-    
-    IF v_numArticulos > 0 THEN
-        SELECT a.* FROM Articulo a
-        INNER JOIN Resultado r ON r.id = a.idResultadoFK
-        WHERE r.idUsuarioFK = idUsuarioP;
-        SET xmensaje = "consulta exitosa...";
-    ELSE
-        SET xmensaje = "No hay articulos registrados para este usuario...";
-    END IF;
-END $$
-DELIMITER ;
+-- DELIMITER $$
+-- CREATE PROCEDURE VisualizarAlmacenados(IN idUsuarioP INT, OUT xmensaje varchar(100))
+-- BEGIN
+--     DECLARE v_numArticulos INT;
+--     SELECT COUNT(*) into v_numArticulos FROM Articulo a
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     WHERE r.idUsuarioFK = idUsuarioP;
+--     
+--     IF v_numArticulos > 0 THEN
+--         SELECT a.* FROM Articulo a
+--         INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--         WHERE r.idUsuarioFK = idUsuarioP;
+--         SET xmensaje = "consulta exitosa...";
+--     ELSE
+--         SET xmensaje = "No hay articulos registrados para este usuario...";
+--     END IF;
+-- END $$
+-- DELIMITER ;
 
 #HU032 Visualizar los resultados de la extracción de artículos
 DELIMITER $$
@@ -552,8 +552,9 @@ DELIMITER ;
 
 #aqui
 #HU036 Filtrar articulos por busqueda avanzada 
+drop procedure FiltrarArticulos;	
 DELIMITER $$
-Create Procedure FiltroArticuloBusquedaAvanzada(
+Create Procedure FiltrarArticulos(
     IN idUsuarioP INT,
     IN fecha1 datetime,
     IN fecha2 datetime, 
@@ -562,17 +563,18 @@ Create Procedure FiltroArticuloBusquedaAvanzada(
     IN temabuscar VARCHAR(100), 
     IN fuentes VARCHAR(100))
 BEGIN
-	SELECT a.*, f.nombre as "fuente", f.url from Articulo a
-    INNER JOIN ArticuloDetalle ad on a.id = ad.idArticuloFK
-    INNER JOIN Fuente f on ad.idFuenteFK = f.id
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-	WHERE (fecha1 IS NOT NULL AND fecha2 IS NOT NULL AND Articulo.fecha BETWEEN fecha1 and fecha2)
-		and ((cointitulo IS NULL OR Articulo.titular like CONCAT('%', cointitulo, '%')))
-		and (claves IS NULL OR Articulo.titular like CONCAT('%', claves, '%') or Articulo.subtitulo like CONCAT('%', claves, '%') or Articulo.cuerpo like CONCAT('%', claves, '%'))
-		and (temabuscar IS NULL OR Articulo.tema = temabuscar)
-		and (fuentes IS NULL OR Fuente.dominio = fuentes)
-        and idUsuarioP = r.idUsuarioFK
-    Order by Articulo.fecha desc;
+    SELECT a.*, au.favorito as favorito, f.id as idFuente, f.url, f.tipo, f.nombre FROM Articulo a
+    INNER JOIN ArticuloDetalle ad ON ad.idArticuloFK = a.id
+    INNER JOIN Fuente f ON f.id = ad.idFuenteFK
+    INNER JOIN ArticulosUsuario au ON au.idArticulo = a.id
+    WHERE idUsuarioP = au.idUsuarioFK
+    AND !au.descartado
+    AND (fecha1 IS NULL OR a.fecha >= fecha1)
+    AND (fecha2 IS NULL OR a.fecha <= fecha2)
+    AND a.titular LIKE CONCAT("%",cointitulo,"%")
+    AND a.cuerpo LIKE CONCAT("%",claves,"%")
+    AND a.tema LIKE CONCAT("%",temaBuscar,"%")
+    AND f.nombre LIKE CONCAT("%",fuentes,"%");
 END $$
 DELIMITER ;
 

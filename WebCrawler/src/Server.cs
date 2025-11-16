@@ -125,6 +125,11 @@ class Server
                     GetArticles(context);
                     return;
                 }
+                else if (parsedUrl.Count > 1)
+                {
+                    FilterArticles(context);
+                    return;
+                }
             }
             else if (request.Url.AbsolutePath == "/api/get-results")
             {
@@ -194,6 +199,31 @@ class Server
         {
             Console.WriteLine($"file does not exist {path}");
         }
+    }
+
+    private void FilterArticles(HttpListenerContext context)
+    {
+        var response = context.Response;
+        var request = context.Request;
+
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+
+        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+        var titular = parsedUrl["titular"];
+        var palabrasClave = parsedUrl["clave"];
+        var tema = parsedUrl["tema"];
+        var nombreFuente = parsedUrl["fuente"];
+        var fecha1 = string.IsNullOrEmpty(parsedUrl["fecha1"]) ? null : parsedUrl["fecha1"];
+        var fecha2 = string.IsNullOrEmpty(parsedUrl["fecha2"]) ? null : parsedUrl["fecha2"];
+
+        var articles = _repository.FilterArticles(id, titular, palabrasClave, tema, nombreFuente, fecha1, fecha2);
+
+        string json = JsonSerializer.Serialize(articles);
+        byte[] buffer = Encoding.UTF8.GetBytes(json);
+        response.ContentLength64 = buffer.Length;
+        response.ContentType = GetContentType(".json");
+        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Close();
     }
 
     private void ChangePassword(HttpListenerContext context)
