@@ -428,22 +428,24 @@ function switchTab(tabName) {
 
 //done
 async function renderArticles(filteredArticles = null) {
-    try {
-        response = await fetch(`/api/get-articles?id=${currentUser.id}`,{
-            method: "GET",
-			headers: {
-                'Content-Type': 'application/json',
-            },
-        });
-        let articleDetail = await response.json();
-        articleDetail.forEach(a => a.Article.isDiscarded = false);
-        articleDetail.forEach(a => a.Article.isNew = false);
-        articleDetail.forEach(a => a.Article.Tema = a.Article.Tema.split(/[,]+/).filter(Boolean))
-        articles = articleDetail;
-    } catch (error) {
-        console.error('error al mostrar articulos', error)
+    if(filteredArticles == null){
+        try {
+            response = await fetch(`/api/get-articles?id=${currentUser.id}`,{
+                method: "GET",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            let articleDetail = await response.json();
+            articleDetail.forEach(a => a.Article.isDiscarded = false);
+            articleDetail.forEach(a => a.Article.isNew = false);
+            articleDetail.forEach(a => a.Article.Tema = a.Article.Tema.split(/[,]+/).filter(Boolean))
+            articles = articleDetail;
+        } catch (error) {
+            console.error('error al mostrar articulos', error)
+        }
+        updateStats();
     }
-    updateStats();
     const articlesToRender = filteredArticles || articles.filter(a => !a.isDiscarded);
     const container = document.getElementById('articlesList');
     
@@ -645,7 +647,7 @@ async function toggleFavorite(articleId) {
 }
 
 
-function applyFilters() {
+async function applyFilters() {
     const titleFilter = document.getElementById('titleFilter').value.toLowerCase();
     const keywordFilter = document.getElementById('keywordFilter').value.toLowerCase();
     const categoryFilter = document.getElementById('categoryFilter').value;
@@ -653,30 +655,39 @@ function applyFilters() {
     const dateFrom = document.getElementById('dateFrom').value;
     const dateTo = document.getElementById('dateTo').value;
 
-    let filtered = articles.filter(article => !article.isDiscarded);
+    let filtered = articles;
 
-    if (titleFilter) {
-        filtered = filtered.filter(a => a.title.toLowerCase().includes(titleFilter));
+    try{
+        const response = await fetch(
+            `/api/get-articles?` + 
+            `id=${currentUser.id}` +
+            `&titular=${titleFilter}` +
+            `&clave=${keywordFilter}` + 
+            `&tema=${categoryFilter}` +
+            `&fuente=${sourceFilter}` +
+            `&fecha1=${dateFrom}` +
+            `&fecha2=${dateTo}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+        let articleDetail = await response.json();
+        articleDetail.forEach(a => a.Article.isDiscarded = false);
+        articleDetail.forEach(a => a.Article.isNew = false);
+        articleDetail.forEach(a => a.Article.Tema = a.Article.Tema.split(/[,]+/).filter(Boolean))
+        filtered = articleDetail;
     }
-    if (keywordFilter) {
-        filtered = filtered.filter(a => a.keywords.some(k => k.toLowerCase().includes(keywordFilter)));
-    }
-    if (categoryFilter) {
-        filtered = filtered.filter(a => a.category === categoryFilter);
-    }
-    if (sourceFilter) {
-        filtered = filtered.filter(a => a.source === sourceFilter);
-    }
-    if (dateFrom) {
-        filtered = filtered.filter(a => a.date >= dateFrom);
-    }
-    if (dateTo) {
-        filtered = filtered.filter(a => a.date <= dateTo);
+    catch(error){
+        console.error('error filtrando notificaciones', error)
     }
 
     renderArticles(filtered);
     showAlert(`${filtered.length} artículos encontrados`, 'info');
 }
+
 
 function clearFilters() {
     document.getElementById('titleFilter').value = '';
@@ -1252,7 +1263,7 @@ function hideChangePasswordModal() {
     document.getElementById('changePasswordModal').classList.add('hidden');
 }
 
-
+//done
 async function changePassword(e) {
     e.preventDefault();
     // Simulate password change
@@ -1318,13 +1329,6 @@ function showDeleteAccountModal() {
 function hideDeleteAccountModal() {
     document.getElementById('deleteAccountModal').classList.add('hidden');
 }
-
-// function deleteAccount() {
-//     // Simulate account deletion
-//     hideDeleteAccountModal();
-//     showAlert('Cuenta eliminada exitosamente', 'info');
-//     logout();
-// }
 
 //done
 function hideAllModals() {

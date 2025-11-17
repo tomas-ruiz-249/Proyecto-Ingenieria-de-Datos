@@ -60,6 +60,64 @@ class Repository
 
         return success;
     }
+    
+    public List<ArticleSource> FilterArticles(
+        int userId,
+        string? titular,
+        string? palabrasClave,
+        string? tema,
+        string? nombreFuente,
+        string? fecha1,
+        string? fecha2
+    )
+    {
+        var articulos = new List<ArticleSource>();
+        try
+        {
+            var procedure = "FiltrarArticulos";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("idUsuarioP", userId);
+            cmd.Parameters.AddWithValue("fecha1", fecha1);
+            cmd.Parameters.AddWithValue("fecha2", fecha2);
+            cmd.Parameters.AddWithValue("cointitulo", titular);
+            cmd.Parameters.AddWithValue("claves", palabrasClave);
+            cmd.Parameters.AddWithValue("temaBuscar", tema);
+            cmd.Parameters.AddWithValue("fuentes", nombreFuente);
+            var rdr = cmd.ExecuteReader();
+            while (rdr.Read())
+            {
+                var id = rdr.GetInt32("id");
+                var temaArticulo = rdr.GetString("tema");
+                var titularArticulo = rdr.GetString("titular");
+                var subtitulo = rdr.GetString("subtitulo");
+                var cuerpo = rdr.GetString("cuerpo");
+                var favorito = rdr.GetBoolean("favorito");
+                string fecha = rdr["fecha"] == DBNull.Value
+                    ? string.Empty
+                    : rdr.GetDateTime("fecha").ToString();
+                var idResultado = rdr.GetInt32("idResultadoFK");
+                var articulo = new Articulo(id, temaArticulo, titularArticulo, subtitulo, cuerpo, fecha, idResultado, favorito);
+
+                var idFuente = rdr.GetInt32("idFuente");
+                var url = rdr.GetString("url");
+                var tipo = rdr.GetString("tipo");
+                var nombre = rdr.GetString("nombre");
+                var fuente = new Fuente(idFuente, url, tipo, nombre);
+
+                articulos.Add(new ArticleSource(articulo, fuente));
+            }
+            rdr.Close();
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+        return articulos;
+    }
+
 
     public bool SetResultFinished(int resultId, int articleCount)
     {
