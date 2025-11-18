@@ -12,39 +12,70 @@ CREATE PROCEDURE RegistrarArticulo(
     IN p_favorito BOOL,
     IN p_url VARCHAR(500),
     IN p_tipo VARCHAR(50),
-    IN p_nombreFuente VARCHAR(500)
+    IN p_nombreFuente VARCHAR(500),
+    OUT p_idArticulo INT,
+    OUT p_idFuente INT
 )
 BEGIN
-    DECLARE v_idFuente INT;
-    DECLARE v_idArticulo INT;
-
-	INSERT INTO Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK, favorito)
-    VALUES (
-        IFNULL(p_tema, ''),
-        IFNULL(p_titular, ''),
-        IFNULL(p_subtitulo, ''),
-        IFNULL(p_cuerpo, ''),
-        p_fecha,
-        p_idResultadoFK,
-        p_favorito
-    );
-    SET v_idArticulo = LAST_INSERT_ID();
-	
-    SELECT id INTO v_idFuente
-    FROM Fuente
-    WHERE url = p_url AND nombre = p_nombreFuente
-    LIMIT 1;
-
-    IF v_idFuente IS NULL THEN
+	DECLARE v_idUsuario INT;
+    SELECT idUsuarioFK INTO v_idUsuario FROM Resultado WHERE id = p_idResultadoFK;
+    
+    SELECT a.id, f.id INTO p_idArticulo, p_idFuente
+    FROM Articulo a
+    INNER JOIN ArticuloDetalle ad ON ad.idArticuloFK = a.id
+    INNER JOIN Fuente f ON f.id = ad.idFuenteFK
+    WHERE p_titular = a.titular
+    AND p_url = f.url;
+    
+    IF p_idArticulo IS NULL THEN
+		INSERT INTO Articulo (tema, titular, subtitulo, cuerpo, fecha, idResultadoFK)
+		VALUES (
+			IFNULL(p_tema, ''),
+			IFNULL(p_titular, ''),
+			IFNULL(p_subtitulo, ''),
+			IFNULL(p_cuerpo, ''),
+			p_fecha,
+			p_idResultadoFK
+		);
+		SET p_idArticulo = LAST_INSERT_ID();
+        
         INSERT INTO Fuente (url, tipo, nombre)
-        VALUES (p_url, p_tipo, p_nombreFuente);
-        SET v_idFuente = LAST_INSERT_ID();
+		VALUES (p_url, p_tipo, p_nombreFuente);
+		SET p_idFuente = LAST_INSERT_ID();
         
         INSERT INTO ArticuloDetalle (idArticuloFK, idFuenteFK)
-		VALUES (v_idArticulo, v_idFuente);
+		VALUES (p_idArticulo, p_idFuente);
     END IF;
+    
+    IF EXISTS(
+		SELECT * FROM ArticulosUsuario 
+        WHERE idUsuarioFK = v_idUsuario
+        AND idArticulo = p_idArticulo
+	)
+	THEN
+		SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Este Articulo ya existe para este usuario';
+    END IF;
+    
+    INSERT INTO ArticulosUsuario (idUsuarioFK, idArticulo, descartado, favorito)
+		VALUES (v_idUsuario, p_idArticulo, false, p_favorito);
 END$$
 DELIMITER ;
+
+
+#HU002 Consultar Articulos
+Delimiter $$
+Create Procedure ConsultarArticulos(IN idUsuarioP INT)
+Begin
+	SELECT a.*, au.favorito as favorito, f.id as idFuente, f.url, f.tipo, f.nombre FROM Articulo a
+    INNER JOIN ArticuloDetalle ad ON ad.idArticuloFK = a.id
+    INNER JOIN Fuente f ON f.id = ad.idFuenteFK
+    INNER JOIN ArticulosUsuario au ON au.idArticulo = a.id
+    WHERE idUsuarioP = au.idUsuarioFK
+    AND !au.descartado;
+End $$
+Delimiter ;
+
 
 #HU003 Mostrar articulos mas recientes
 Delimiter $$
@@ -60,15 +91,28 @@ Delimiter ;
 -- HU004 Descartar articulos ---------------------------------------
 delimiter $$
 create procedure eliminarArticulo(
-    in p_id_articulo int
+    in p_id_articulo int,
+    in p_id_usuario int
 )
 begin
-    if exists (select 1 from articulo where id = p_id_articulo) then
-        delete from articulodetalle where idarticulofk = p_id_articulo;
-        delete from articulo where id = p_id_articulo;
-        select 'el articulo fue eliminado correctamente' as mensaje;
-    else
-        select 'el articulo no existe' as mensaje;
+	declare articuloSinUsuarios bool;
+    if exists (
+		select * from ArticulosUsuario 
+		where idArticulo = p_id_articulo
+        and idUsuarioFK = p_id_usuario
+	) then
+        update ArticulosUsuario 
+        set descartado = true 
+        where idArticulo = p_id_articulo
+        and idUsuarioFK = p_id_usuario;
+        
+        select count(*) = sum(descartado) into articuloSinUsuarios 
+        from ArticulosUsuario
+        where idArticulo = p_id_articulo;
+        
+        if articuloSinUsuarios then
+			delete from Articulo where id = p_id_articulo;
+		end if;
     end if;
 end$$
 delimiter ;
@@ -76,99 +120,95 @@ delimiter ;
 -- HU005 Asignar articulos como favoritos-----------------------
 delimiter $$
 create procedure toggle_favorito(
-    in p_id_articulo int,
-    in p_favorito bool
+    in p_id_articulo int
 )
 begin
-    if exists (select 1 from articulo where id = p_id_articulo) then
-        update articulo
-        set favorito = p_favorito
-        where id = p_id_articulo;
-        select 'el articulo fue actualizado correctamente' as mensaje;
-    else
-        select 'el articulo no existe' as mensaje;
-    end if;
+    if exists (select 1 from Articulo where id = p_id_articulo) then
+        update ArticulosUsuario
+        set favorito = !favorito
+        where idArticulo = p_id_articulo;
+	end if;
 end$$
 delimiter ;
 
 #HU006 Filtrar articulos por rango de fechas
-Delimiter $$
-Create Procedure FiltroArticulosRangoFechas(IN idUsuarioP INT, IN fecha1 datetime, IN fecha2 datetime)
-Begin
-	select * from Articulo a
-    inner join Resultado r on r.id = a.idResultadoFK
-    where (fecha between fecha1 and fecha2) and (r.idUsuarioFK = idUsuarioP)
-    order by fecha asc;
-End $$
-Delimiter ;
+-- Delimiter $$
+-- Create Procedure FiltroArticulosRangoFechas(IN idUsuarioP INT, IN fecha1 datetime, IN fecha2 datetime)
+-- Begin
+-- 	select * from Articulo a
+--     inner join Resultado r on r.id = a.idResultadoFK
+--     where (fecha between fecha1 and fecha2) and (r.idUsuarioFK = idUsuarioP)
+--     order by fecha asc;
+-- End $$
+-- Delimiter ;
 
 #HU007 Filtrar Articulos por coincidencias en titulo
-Delimiter $$
-Create Procedure FiltroArticuloCoincidenciasTitulo(IN idUsuarioP INT, IN palabras VARCHAR(50))
-Begin
-	select a.* from Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    where titular like CONCAT('%', palabras, '%') and r.idUsuarioFK = idUsuarioP;
-End $$
-Delimiter ;
+-- Delimiter $$
+-- Create Procedure FiltroArticuloCoincidenciasTitulo(IN idUsuarioP INT, IN palabras VARCHAR(50))
+-- Begin
+-- 	select a.* from Articulo a
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     where titular like CONCAT('%', palabras, '%') and r.idUsuarioFK = idUsuarioP;
+-- End $$
+-- Delimiter ;
 
 
 -- HU008: Filtrar artículos por palabras clave
-DELIMITER $$
-CREATE PROCEDURE FiltrarArticulosPorPalabraClave (
-    IN idUsuarioP INT,
-    IN palabraClave VARCHAR(100)
-)
-BEGIN
-    SELECT 
-        a.id,
-        a.tema,
-        a.titular,
-        a.subtitulo,
-        a.cuerpo,
-        a.fecha,
-        a.favorito,
-        f.url AS urlFuente,
-        f.tipo AS tipoFuente,
-        f.nombre AS nombreFuente
-    FROM Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    INNER JOIN ArticuloDetalle ad ON a.id = ad.idArticuloFK
-    INNER JOIN Fuente f ON ad.idFuenteFK = f.id
-    WHERE 
-    (
-        a.titular LIKE CONCAT('%', palabraClave, '%')
-        OR a.subtitulo LIKE CONCAT('%', palabraClave, '%')
-        OR a.cuerpo LIKE CONCAT('%', palabraClave, '%')
-    )
-        AND (r.idUsuarioFK = idUsuarioP)
-    ORDER BY a.fecha DESC;
-END $$
-DELIMITER ;
+-- DELIMITER $$
+-- CREATE PROCEDURE FiltrarArticulosPorPalabraClave (
+--     IN idUsuarioP INT,
+--     IN palabraClave VARCHAR(100)
+-- )
+-- BEGIN
+--     SELECT 
+--         a.id,
+--         a.tema,
+--         a.titular,
+--         a.subtitulo,
+--         a.cuerpo,
+--         a.fecha,
+--         a.favorito,
+--         f.url AS urlFuente,
+--         f.tipo AS tipoFuente,
+--         f.nombre AS nombreFuente
+--     FROM Articulo a
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     INNER JOIN ArticuloDetalle ad ON a.id = ad.idArticuloFK
+--     INNER JOIN Fuente f ON ad.idFuenteFK = f.id
+--     WHERE 
+--     (
+--         a.titular LIKE CONCAT('%', palabraClave, '%')
+--         OR a.subtitulo LIKE CONCAT('%', palabraClave, '%')
+--         OR a.cuerpo LIKE CONCAT('%', palabraClave, '%')
+--     )
+--         AND (r.idUsuarioFK = idUsuarioP)
+--     ORDER BY a.fecha DESC;
+-- END $$
+-- DELIMITER ;
 
 #HU009 Filtrar Articulos por tema
-Delimiter $$
-Create Procedure FiltroArticuloTema(IN idUsuarioP INT, IN temabuscar VARCHAR(100))
-Begin
-	select * from Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    where tema = temabuscar and r.idUsuarioFK = idUsuarioP;
-End $$
-Delimiter ;
+-- Delimiter $$
+-- Create Procedure FiltroArticuloTema(IN idUsuarioP INT, IN temabuscar VARCHAR(100))
+-- Begin
+-- 	select * from Articulo a
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     where tema = temabuscar and r.idUsuarioFK = idUsuarioP;
+-- End $$
+-- Delimiter ;
 
 
 #HU010 Filtrar Articulos la fuente correspondiente
-Delimiter $$
-Create Procedure FiltroArticuloFuente(IN idUsuarioP INT, IN fuentes VARCHAR(100))
-Begin
-	select * from Articulo a
-    Inner Join ArticuloDetalle ad on a.id = ad.idArticuloFK
-    Inner Join Fuente f on ad.idFuenteFK = f.id
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    Where f.nombre = fuentes AND r.idUsuarioFK = idUsuarioP
-    Order by a.fecha desc;
-End $$
-Delimiter ;
+-- Delimiter $$
+-- Create Procedure FiltroArticuloFuente(IN idUsuarioP INT, IN fuentes VARCHAR(100))
+-- Begin
+-- 	select * from Articulo a
+--     Inner Join ArticuloDetalle ad on a.id = ad.idArticuloFK
+--     Inner Join Fuente f on ad.idFuenteFK = f.id
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     Where f.nombre = fuentes AND r.idUsuarioFK = idUsuarioP
+--     Order by a.fecha desc;
+-- End $$
+-- Delimiter ;
 
 -- HU011: Evitar articulos duplicados
 DELIMITER $$
@@ -176,12 +216,10 @@ CREATE TRIGGER EvitarArticulosDuplicados
 BEFORE INSERT ON Articulo
 FOR EACH ROW
 BEGIN 
-	DECLARE v_url VARCHAR(500);
-    DECLARE V_idArticulo INT;
     IF EXISTS(
 		SELECT * FROM Articulo a
-        WHERE NEW.titular = titular 
-		AND NEW.subtitulo = subtitulo
+        WHERE NEW.titular = a.titular
+        AND NEW.fecha = a.fecha
 	) THEN
 		SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Articulo duplicado, inserción cancelada';
@@ -242,7 +280,8 @@ CREATE TRIGGER EliminarDatosAsociadosUsuario
 BEFORE DELETE ON Usuario
 FOR EACH ROW
 BEGIN
-    DELETE FROM Resultado WHERE r.idUsuarioFK = OLD.id;
+    DELETE FROM Resultado WHERE idUsuarioFK = OLD.id;
+    DELETE FROM ArticulosUsuario WHERE idUsuarioFK = OLD.id;
 END $$
 DELIMITER ;
 
@@ -266,8 +305,8 @@ BEGIN
     DECLARE v_estado INT DEFAULT 2; #2: en proceso
 
     -- Crear un nuevo registro en la tabla Resultado
-    INSERT INTO Resultado (idUsuarioFK, estado, fechaExtraccion)
-    VALUES (p_idUsuario, v_estado, NOW());
+    INSERT INTO Resultado (idUsuarioFK, estado, fechaExtraccion, descartado)
+    VALUES (p_idUsuario, v_estado, NOW(), false);
 
     SET v_idResultado = LAST_INSERT_ID();
 
@@ -310,42 +349,49 @@ delimiter ;
 -- HU021 Eliminar Registros ------------------------------------------------ 
 delimiter $$
 create procedure eliminar_resultado(
-    in p_id_resultado int
+    in p_id_usuario int
 )
 begin
-    if exists (select 1 from Resultado where id = p_id_resultado) then
-        delete from Resultado
-        where id = p_id_resultado;
-        select concat('Resultado con id ', p_id_resultado, ' y sus registros asociados han sido eliminados') as mensaje;
-    else
-        select concat('Error: Resultado con id ', p_id_resultado, ' no existe') as mensaje;
-    end if;
+	SET SQL_SAFE_UPDATES = 0;
+    DELETE FROM ArticulosUsuario WHERE idUsuarioFK = p_id_usuario;
+    UPDATE Resultado SET descartado = TRUE;
+    SET SQL_SAFE_UPDATES = 1;
 end$$
 delimiter ;
 
-
 #HU022 Registrar Nuevo usuario en el sistema
 Delimiter $$
-Create Procedure RegistrarUsuario(IN xnombres VARCHAR(30), IN xapellidos VARCHAR(30), IN xcontrasena VARCHAR(30), IN xemail VARCHAR(30), OUT xmensaje VARCHAR(100))
+Create Procedure RegistrarUsuario(
+	IN xnombres VARCHAR(30),
+    IN xapellidos VARCHAR(30),
+    IN xcontrasena VARCHAR(30), 
+    IN xemail VARCHAR(30)
+)
 Begin
     Insert Into Usuario(nombres, apellidos, contraseña, correo)
     Values (xnombres, xapellidos, xcontrasena, xemail);
-    Set xmensaje = "El usuario se ha registrado correctamente";
 End $$
 Delimiter ;
 
 
 #HU023 Iniciar sesion en la plataforma
 Delimiter $$
-Create Procedure IniciarSesion(IN xemail VARCHAR(30), IN xcontrasena VARCHAR(30), OUT xmensaje VARCHAR(100))
+Create Procedure IniciarSesion(IN xemail VARCHAR(30), IN xcontrasena VARCHAR(30), OUT xidUsuario INT)
 Begin
 	IF EXISTS(Select 1 from Usuario where correo = xemail and contraseña = xcontrasena) THEN 
-		Set xmensaje = "Inicio de sesion validado";
+		Select id into xidUsuario from Usuario where correo = xemail and contraseña = xcontrasena;
     ELSE 
-		Set xmensaje = "El correo o la contrasena son incorrectos";
+		Set xidUsuario = -1;
 	End IF;
 End $$
 Delimiter ;
+
+DELIMITER $$
+CREATE PROCEDURE ConsultarUsuario(IN idP INT)
+BEGIN
+	SELECT * FROM Usuario WHERE id = idP;
+END $$
+DELIMITER ;
 
  #HU024 Cerrar sesion Simbolico en sql (FRONTEND BACKEND)
 # esto ocurre en la interfaz
@@ -353,13 +399,10 @@ Delimiter ;
 
 #HU025 Actualizar contraseña del usuario
 Delimiter $$
-Create Procedure ActualizarContrasena(IN xcorreo VARCHAR(50),IN xcontrasena VARCHAR(30),IN xnuevacontrasena VARCHAR(30), OUT xmensaje VARCHAR(200))
+Create Procedure ActualizarContrasena(IN xnuevacontrasena VARCHAR(30), IN idUsuario INT)
 Begin
-	IF EXISTS(Select 1 from Usuario where correo = xcorreo and contraseña = xcontrasena) THEN 
-        update Usuario set contraseña = xnuevacontrasena where correo = xcorreo;
-		Set xmensaje = "Se actualizo la contraseña correctamente";
-    ELSE 
-		Set xmensaje = "Credenciales incorrectas, verifica que esten bien escritas";
+	IF EXISTS(Select 1 from Usuario where id = idUsuario) THEN 
+        update Usuario set contraseña = xnuevacontrasena  where id = idUsuario;
 	End IF;
 End $$
 Delimiter ;
@@ -403,7 +446,8 @@ BEGIN
         SET mensajeP = CONCAT("Hay ", numNotificaciones, " notificaciones");
         SELECT * FROM Notificacion n
         INNER JOIN Resultado r ON r.id = n.idResultadoFK
-        WHERE r.idUsuarioFK = idUsuarioP;
+        WHERE r.idUsuarioFK = idUsuarioP
+        AND r.descartado = false;
     END IF;
 END $$
 DELIMITER ;
@@ -411,13 +455,12 @@ DELIMITER ;
 #HU029 Marcar notificación como leída/no leída
 DELIMITER $$
 CREATE PROCEDURE AsignarLecturaNotificacion(
-    IN idNotificacionP INT,
-    IN leidaP BOOL
+    IN idNotificacionP INT
 )
 BEGIN
-    UPDATE Notificacion SET leida = leidaP WHERE id = idNotificacionP;
+    UPDATE Notificacion SET leido = !leido WHERE id = idNotificacionP;
 END $$
-DELIMITER ;
+DELIMITER ; 
 
 -- HU030 Eliminar notificacion --------------------------------------------
 delimiter $$
@@ -425,8 +468,8 @@ create procedure eliminar_notificacion(
     in p_id_notificacion int
 )
 begin
-    if exists (select 1 from notificacion where id = p_id_notificacion) then
-        delete from notificacion where id = p_id_notificacion;
+    if exists (select 1 from Notificacion where id = p_id_notificacion) then
+        delete from Notificacion where id = p_id_notificacion;
         select 'la notificacion fue eliminada correctamente' as mensaje;
     else
         select 'la notificacion no existe' as mensaje;
@@ -435,34 +478,34 @@ end$$
 delimiter ;
 
 #HU031 Visualizar articulos almacenados
-DELIMITER $$
-CREATE PROCEDURE VisualizarAlmacenados(IN idUsuarioP INT, OUT xmensaje varchar(100))
-BEGIN
-    DECLARE v_numArticulos INT;
-    SELECT COUNT(*) into v_numArticulos FROM Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    WHERE r.idUsuarioFK = idUsuarioP;
-    
-    IF v_numArticulos > 0 THEN
-        SELECT a.* FROM Articulo a
-        INNER JOIN Resultado r ON r.id = a.idResultadoFK
-        WHERE r.idUsuarioFK = idUsuarioP;
-        SET xmensaje = "consulta exitosa...";
-    ELSE
-        SET xmensaje = "No hay articulos registrados para este usuario...";
-    END IF;
-END $$
-DELIMITER ;
+-- DELIMITER $$
+-- CREATE PROCEDURE VisualizarAlmacenados(IN idUsuarioP INT, OUT xmensaje varchar(100))
+-- BEGIN
+--     DECLARE v_numArticulos INT;
+--     SELECT COUNT(*) into v_numArticulos FROM Articulo a
+--     INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--     WHERE r.idUsuarioFK = idUsuarioP;
+--     
+--     IF v_numArticulos > 0 THEN
+--         SELECT a.* FROM Articulo a
+--         INNER JOIN Resultado r ON r.id = a.idResultadoFK
+--         WHERE r.idUsuarioFK = idUsuarioP;
+--         SET xmensaje = "consulta exitosa...";
+--     ELSE
+--         SET xmensaje = "No hay articulos registrados para este usuario...";
+--     END IF;
+-- END $$
+-- DELIMITER ;
 
 #HU032 Visualizar los resultados de la extracción de artículos
 DELIMITER $$
 CREATE PROCEDURE VisualizarResultadoExtraccion(
-    IN idResultadoP INT
+    IN idUsuarioP INT
 )
 BEGIN
-	SELECT r.*, COUNT(a.id) AS cantidad FROM Resultado r
-    INNER JOIN Articulo a ON a.idResultadoFK = r.id
-    WHERE r.id = idResultadoP
+	SELECT r.*, r.numArticulos AS cantidad FROM Resultado r
+    WHERE r.idUsuarioFK = idUsuarioP
+    AND !r.descartado
     GROUP BY r.id;
 END $$
 DELIMITER ;
@@ -480,39 +523,34 @@ DELIMITER ;
 
 #HU034 CambiarCorreo
 DELIMITER $$
-CREATE PROCEDURE CambiarCorreoUsuario(IN idUsuarioP INT, IN correoActual VARCHAR(50),IN correoNuevo VARCHAR(50),OUT mensaje VARCHAR(100))
+CREATE PROCEDURE CambiarCorreoUsuario(IN idUsuarioP INT,IN correoNuevo VARCHAR(50))
 BEGIN
-    Update Usuario Set correo = correoNuevo Where correo = correoActual AND id = idUsuarioP;
-    IF ROW_COUNT() > 0 THEN
-        SET mensaje = "Se actualizo el correo exitosamente...";
-    ELSE
-        SET mensaje = "Error al actualizar el correo, verifica que el nuevo sea diferente al anterior";
-    END IF;
+    Update Usuario Set correo = correoNuevo Where id = idUsuarioP;
 END $$
 DELIMITER ;
 
 #HU035 Filtrar notificaciones por estado
 DELIMITER $$
-CREATE PROCEDURE EstadoNotificacion(IN idUsuarioP INT, IN tipoP INT, OUT mensajeP varchar(100))
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM Resultado r 
-        INNER JOIN Notificacion n ON n.idResultadoFK = r.id
-        WHERE r.idUsuarioFK = idUsuarioP AND n.tipo = tipoP
-    ) THEN
-		SELECT n.*, r.id , r.estado, r.fechaExtraccion FROM Notificacion n
-		INNER JOIN Resultado r ON n.idResultadoFK = r.id
-		WHERE n.tipo = tipoP AND idUsuarioP = r.idUsuarioFK;
-		SET mensajeP = "exito";
-	ELSE
-		SET mensajeP = "No hay notificaciones del tipo especificado";
-	END IF;
+CREATE PROCEDURE FiltrarNotificacion(
+	IN idUsuarioP INT,
+    IN tipoP INT,
+    IN leidoP BOOL
+)
+BEGIN 
+	SELECT n.* FROM Notificacion n
+	INNER JOIN Resultado r ON n.idResultadoFK = r.id
+	WHERE 1=1
+	AND n.tipo = COALESCE(tipoP, n.tipo)
+	AND r.idUsuarioFK = COALESCE(idUsuarioP,r.idUsuarioFK)
+	AND n.leido = COALESCE(leidoP, n.leido);
 END $$
 DELIMITER ;
 
+#aqui
 #HU036 Filtrar articulos por busqueda avanzada 
+drop procedure FiltrarArticulos;	
 DELIMITER $$
-Create Procedure FiltroArticuloBusquedaAvanzada(
+Create Procedure FiltrarArticulos(
     IN idUsuarioP INT,
     IN fecha1 datetime,
     IN fecha2 datetime, 
@@ -521,28 +559,28 @@ Create Procedure FiltroArticuloBusquedaAvanzada(
     IN temabuscar VARCHAR(100), 
     IN fuentes VARCHAR(100))
 BEGIN
-	SELECT a.*, f.nombre as "fuente", f.url from Articulo a
-    INNER JOIN ArticuloDetalle ad on a.id = ad.idArticuloFK
-    INNER JOIN Fuente f on ad.idFuenteFK = f.id
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-	WHERE (fecha1 IS NOT NULL AND fecha2 IS NOT NULL AND Articulo.fecha BETWEEN fecha1 and fecha2)
-		and ((cointitulo IS NULL OR Articulo.titular like CONCAT('%', cointitulo, '%')))
-		and (claves IS NULL OR Articulo.titular like CONCAT('%', claves, '%') or Articulo.subtitulo like CONCAT('%', claves, '%') or Articulo.cuerpo like CONCAT('%', claves, '%'))
-		and (temabuscar IS NULL OR Articulo.tema = temabuscar)
-		and (fuentes IS NULL OR Fuente.dominio = fuentes)
-        and idUsuarioP = r.idUsuarioFK
-    Order by Articulo.fecha desc;
+    SELECT a.*, au.favorito as favorito, f.id as idFuente, f.url, f.tipo, f.nombre FROM Articulo a
+    INNER JOIN ArticuloDetalle ad ON ad.idArticuloFK = a.id
+    INNER JOIN Fuente f ON f.id = ad.idFuenteFK
+    INNER JOIN ArticulosUsuario au ON au.idArticulo = a.id
+    WHERE idUsuarioP = au.idUsuarioFK
+    AND !au.descartado
+    AND (fecha1 IS NULL OR a.fecha >= fecha1)
+    AND (fecha2 IS NULL OR a.fecha <= fecha2)
+    AND a.titular LIKE CONCAT("%",cointitulo,"%")
+    AND a.cuerpo LIKE CONCAT("%",claves,"%")
+    AND a.tema LIKE CONCAT("%",temaBuscar,"%")
+    AND f.nombre LIKE CONCAT("%",fuentes,"%");
 END $$
 DELIMITER ;
 
 
 #HU037 Cambiar nombre y apellido
 DELIMITER $$
-CREATE PROCEDURE CambiarNombreApellidoUsuario(IN idP INT,IN nuevoNombre VARCHAR(50),IN nuevoApellido VARCHAR(50),OUT mensaje VARCHAR(100)
+CREATE PROCEDURE CambiarNombreApellidoUsuario(IN idP INT, IN nuevoNombre VARCHAR(50), IN nuevoApellido VARCHAR(50)
 )
 BEGIN
-    Update Usuario SET nombre = nuevoNombre, apellido = nuevoApellido Where id = idP;
-    SET mensaje = "Nombre y apellido actualizados correctamente";
+    Update Usuario SET nombres = nuevoNombre, apellidos = nuevoApellido Where id = idP;
 END $$
 DELIMITER ;
 
@@ -597,6 +635,7 @@ BEGIN
 
     DELETE FROM ArticuloDetalle WHERE idArticuloFK = OLD.id;
     DELETE FROM Fuente WHERE id = idFuenteV;
+    DELETE FROM ArticulosUsuario WHERE idArticulo = OLD.id;
 END $$;
 DELIMITER ;
 

@@ -5,19 +5,6 @@ class Crawler
         _urls = new Queue<Uri>();
         _parser = new Parser();
         _visited = [];
-        _repository = new Repository("server=localhost;user=root;database=WebCrawler;port=3306;");
-        if (!_repository.ConnectToServer())
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("Database connection unsuccessful...");
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Connected to database successfully.");
-            Console.ForegroundColor = ConsoleColor.White;
-        }
     }
 
     public Crawler(List<string> urlList) {
@@ -28,34 +15,22 @@ class Crawler
         }
         _parser = new Parser();
         _visited = [];
-
-        _repository = new Repository("server=localhost;user=root;database=WebCrawler;port=3306;");
-        if (!_repository.ConnectToServer())
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("ERROR CONNECTING TO MYSQL SERVER");
-            Console.ForegroundColor = ConsoleColor.White;
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Connected to MySQL server");
-            Console.ForegroundColor = ConsoleColor.White;
-        }
     }
 
-    public async Task Crawl(string startUrl)
+    public async Task<List<(Articulo article, Fuente source)>> Crawl(string startUrl, Repository repository, int userId)
     {
-        if (!_repository.Connected)
+        var scrapedArticles = new List<(Articulo article, Fuente source)>();
+        if (!repository.Connected)
         {
             Console.WriteLine("No database connection.Crawling aborted...");
-            return;
+            return scrapedArticles;
         }
 
         _parser.SetStartUrl(startUrl);
         _urls.Enqueue(new Uri(startUrl));
-        _repository.RegisterScraping(user);
-        var resultId = _repository.GetLastResultId();
+        repository.RegisterScraping(userId);
+        var resultId = repository.GetLastResultId();
+        LastResult = repository.GetLastResult(resultId);
         int articleCount = 0;
 
         while (_urls.Count != 0 && articleCount < _articleLimit)
@@ -72,6 +47,7 @@ class Crawler
             if (!success) continue;
             _visited.Add(currentUrl);
             var articulo = _parser.ParseArticle(resultId);
+            var fuente = _parser.ParseSource();
 
             var extractedUrls = _parser.ExtractUrls();
 
@@ -79,22 +55,13 @@ class Crawler
             {
                 if (_visited.Contains(url))
                 {
-                    // Console.ForegroundColor = ConsoleColor.DarkBlue;
-                    // Console.WriteLine(url.Host + " was already visited");
-                    // Console.ForegroundColor = ConsoleColor.White;
                     continue;
                 }
                 if(!currentUrl.Host.Contains(url.Host) && !url.Host.Contains(currentUrl.Host))
                 {
-                    // Console.ForegroundColor = ConsoleColor.DarkBlue;
-                    // Console.WriteLine(url.AbsolutePath + " diff domain from " + currentUrl.AbsolutePath);
-                    // Console.ForegroundColor = ConsoleColor.White;
                     continue;
                     
                 }
-                // Console.ForegroundColor = ConsoleColor.DarkBlue;
-                // Console.WriteLine("adding " + url.AbsolutePath + "to queue");
-                // Console.ForegroundColor = ConsoleColor.White;
                 _urls.Enqueue(url);
             }
 
@@ -110,20 +77,26 @@ class Crawler
             Console.WriteLine(articulo);
             Console.ForegroundColor = ConsoleColor.White;
 
-            if(_repository.StoreArticle(articulo, currentUrl, resultId))
+            if(repository.StoreArticleWithSource(articulo, fuente, resultId))
             {
                 articleCount++;
+                var articleSourceTuple = (articulo, fuente);
+                scrapedArticles.Add(articleSourceTuple);
             }
 
         }
         _urls.Clear();
+        _visited.Clear();
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine($"scraping attempt ended with {articleCount} articles found and registered in the database...");
+        Console.ForegroundColor = ConsoleColor.White;
+        repository.SetResultFinished(resultId,articleCount);
+        return scrapedArticles;
     }
 
+    public Result LastResult { get; private set; }
     private const int _articleLimit = 10;
-
     private readonly Queue<Uri> _urls;
     private readonly HashSet<Uri> _visited;
     private readonly Parser _parser;
-    private readonly Repository _repository;
-    private const int user = 1;
 }
