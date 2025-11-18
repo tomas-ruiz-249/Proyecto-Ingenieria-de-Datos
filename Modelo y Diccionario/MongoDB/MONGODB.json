@@ -6,12 +6,17 @@
       "type": "object",
       "properties": [
         {
-          "name": "id",
+          "name": "_id",
           "hackoladeMeta": {},
           "isActivated": true,
           "type": "objectId",
+          "GUID": "6044ed9c-afa9-4193-b999-74cf202747f2",
+          "required": true,
+          "primaryKey": true,
           "error": {},
-          "GUID": "6044ed9c-afa9-4193-b999-74cf202747f2"
+          "childRelationships": [
+            "fc86dea7-7eb6-4c48-b193-3f786243450c"
+          ]
         },
         {
           "name": "nombres",
@@ -19,6 +24,9 @@
           "isActivated": true,
           "type": "string",
           "GUID": "249afcbe-d6a6-4c19-8890-eac091762051",
+          "required": true,
+          "maxLength": 50,
+          "minLength": 0,
           "error": {}
         },
         {
@@ -27,6 +35,10 @@
           "isActivated": true,
           "type": "string",
           "GUID": "b053fba6-63a7-4005-b289-a5b6483cd1be",
+          "primaryKey": false,
+          "required": true,
+          "minLength": 1,
+          "maxLength": 50,
           "error": {}
         },
         {
@@ -35,6 +47,9 @@
           "isActivated": true,
           "type": "string",
           "GUID": "411d87ec-631e-47aa-b0d1-379fc221dfd9",
+          "format": "email",
+          "minLength": 1,
+          "maxLength": 50,
           "error": {}
         },
         {
@@ -43,10 +58,11 @@
           "isActivated": true,
           "type": "string",
           "GUID": "9e5bf364-a9cc-40fe-8349-50caef77368a",
-          "error": {
-            "name": false,
-            "code": false
-          }
+          "maxLength": 30,
+          "minLength": 1,
+          "primaryKey": false,
+          "required": true,
+          "error": {}
         },
         {
           "name": "Resultado",
@@ -55,19 +71,17 @@
           "type": "document",
           "properties": [
             {
-              "name": "id",
+              "name": "_id",
               "hackoladeMeta": {},
               "isActivated": true,
               "type": "objectId",
-              "error": {
-                "name": false,
-                "code": false
-              },
               "GUID": "0701dcea-aff3-4d09-84e4-5f96866e3b5b",
               "childRelationships": [
                 "98ca9856-7455-48ef-973a-40f7092f8a5a",
                 "7552e3d9-daef-40f0-93df-8fc73ce03054"
-              ]
+              ],
+              "required": true,
+              "error": {}
             },
             {
               "hackoladeMeta": {},
@@ -76,23 +90,27 @@
               "primaryKey": false,
               "GUID": "4e28333b-d73f-4610-a64d-ac1d932908bb",
               "name": "fechaExtraccion",
+              "required": true,
               "error": {}
             },
             {
-              "name": "status",
+              "name": "estado",
               "hackoladeMeta": {},
               "isActivated": true,
               "type": "numeric",
-              "error": {},
-              "GUID": "af0abd1c-fc78-4f2c-b41a-8613466e5a25"
+              "GUID": "af0abd1c-fc78-4f2c-b41a-8613466e5a25",
+              "required": true,
+              "minimum": 0,
+              "maximum": 3,
+              "default": 2,
+              "error": {}
             }
           ],
           "additionalProperties": false,
-          "error": {
-            "name": false,
-            "code": false
-          },
-          "GUID": "03b49f9a-9b4d-4866-a6e1-531d5ce92b99"
+          "GUID": "03b49f9a-9b4d-4866-a6e1-531d5ce92b99",
+          "required": false,
+          "primaryKey": false,
+          "error": {}
         },
         {
           "name": "articulos",
@@ -110,32 +128,45 @@
                   "hackoladeMeta": {},
                   "isActivated": true,
                   "type": "objectId",
+                  "GUID": "c4362880-cdea-4d84-bc8a-7f6ee1937162",
+                  "required": true,
                   "error": {},
-                  "GUID": "c4362880-cdea-4d84-bc8a-7f6ee1937162"
+                  "foreignCollection": "459c3981-c65a-4247-8655-5b262eea3b3b",
+                  "foreignField": [
+                    "459c3981-c65a-4247-8655-5b262eea3b3b",
+                    "6044ed9c-afa9-4193-b999-74cf202747f2"
+                  ],
+                  "relationshipType": "Foreign Key",
+                  "parentRelationship": "fc86dea7-7eb6-4c48-b193-3f786243450c"
                 },
                 {
                   "name": "idArticulo",
                   "hackoladeMeta": {},
                   "isActivated": true,
                   "type": "objectId",
-                  "error": {},
-                  "GUID": "cf56cdc8-9cd8-4cae-9390-ffced76998c4"
+                  "GUID": "cf56cdc8-9cd8-4cae-9390-ffced76998c4",
+                  "required": true,
+                  "error": {}
                 },
                 {
                   "name": "descartado",
                   "hackoladeMeta": {},
                   "isActivated": true,
                   "type": "boolean",
-                  "error": {},
-                  "GUID": "a9231942-c606-4f94-8a6e-9520f79fa7df"
+                  "GUID": "a9231942-c606-4f94-8a6e-9520f79fa7df",
+                  "required": true,
+                  "default": "false",
+                  "error": {}
                 },
                 {
                   "name": "favorito",
                   "hackoladeMeta": {},
                   "isActivated": true,
                   "type": "boolean",
-                  "error": {},
-                  "GUID": "841c20a8-03db-4344-a220-bb7f73fbbd15"
+                  "GUID": "841c20a8-03db-4344-a220-bb7f73fbbd15",
+                  "required": true,
+                  "default": "false",
+                  "error": {}
                 }
               ],
               "additionalProperties": false,
@@ -146,8 +177,9 @@
             }
           ],
           "additionalItems": true,
-          "error": {},
-          "GUID": "5214d0d6-55e6-49e1-8843-1ca0422d3fb9"
+          "GUID": "5214d0d6-55e6-49e1-8843-1ca0422d3fb9",
+          "required": false,
+          "error": {}
         }
       ],
       "definitions": {
@@ -178,15 +210,14 @@
       "type": "object",
       "properties": [
         {
-          "name": "id",
+          "name": "_id",
           "hackoladeMeta": {},
           "isActivated": true,
           "type": "objectId",
-          "error": {
-            "name": false,
-            "code": false
-          },
-          "GUID": "074c9052-7969-4461-9691-99c2f0d7a17f"
+          "GUID": "074c9052-7969-4461-9691-99c2f0d7a17f",
+          "required": true,
+          "primaryKey": true,
+          "error": {}
         },
         {
           "hackoladeMeta": {},
@@ -194,6 +225,9 @@
           "type": "string",
           "GUID": "8bc4ae9d-da0d-449c-a430-ee2082d23b15",
           "name": "mensaje",
+          "required": true,
+          "minLength": 1,
+          "maxLength": 50,
           "error": {}
         },
         {
@@ -201,26 +235,28 @@
           "hackoladeMeta": {},
           "isActivated": true,
           "type": "numeric",
-          "error": {},
-          "GUID": "4206d75c-677a-4e36-88fb-b50673d05283"
+          "GUID": "4206d75c-677a-4e36-88fb-b50673d05283",
+          "required": true,
+          "minimum": 0,
+          "maximum": 3,
+          "default": 2,
+          "error": {}
         },
         {
           "name": "leido",
           "hackoladeMeta": {},
           "isActivated": true,
           "type": "boolean",
-          "error": {},
-          "GUID": "fbe58485-f45d-4a37-8824-676183c24a4d"
+          "GUID": "fbe58485-f45d-4a37-8824-676183c24a4d",
+          "required": true,
+          "default": "false",
+          "error": {}
         },
         {
           "name": "idResultado",
           "hackoladeMeta": {},
           "isActivated": true,
           "type": "objectId",
-          "error": {
-            "name": false,
-            "code": false
-          },
           "GUID": "43765ef2-d384-496b-9cf2-a433b8f44529",
           "relationshipType": "Foreign Key",
           "foreignCollection": "459c3981-c65a-4247-8655-5b262eea3b3b",
@@ -229,7 +265,9 @@
             "03b49f9a-9b4d-4866-a6e1-531d5ce92b99",
             "0701dcea-aff3-4d09-84e4-5f96866e3b5b"
           ],
-          "parentRelationship": "98ca9856-7455-48ef-973a-40f7092f8a5a"
+          "parentRelationship": "98ca9856-7455-48ef-973a-40f7092f8a5a",
+          "required": true,
+          "error": {}
         }
       ],
       "definitions": {
@@ -260,19 +298,20 @@
       "type": "object",
       "properties": [
         {
-          "name": "id",
+          "name": "_id",
           "hackoladeMeta": {},
           "isActivated": true,
           "type": "objectId",
-          "error": {},
-          "GUID": "610ca5ac-2fa9-4606-be47-9844f371f168"
+          "GUID": "610ca5ac-2fa9-4606-be47-9844f371f168",
+          "primaryKey": true,
+          "required": true,
+          "error": {}
         },
         {
           "name": "idResultado",
           "hackoladeMeta": {},
           "isActivated": true,
           "type": "objectId",
-          "error": {},
           "GUID": "f6c0d40e-239d-4293-8f0f-60e48ff3b8a1",
           "relationshipType": "Foreign Key",
           "foreignCollection": "459c3981-c65a-4247-8655-5b262eea3b3b",
@@ -281,7 +320,9 @@
             "03b49f9a-9b4d-4866-a6e1-531d5ce92b99",
             "0701dcea-aff3-4d09-84e4-5f96866e3b5b"
           ],
-          "parentRelationship": "7552e3d9-daef-40f0-93df-8fc73ce03054"
+          "parentRelationship": "7552e3d9-daef-40f0-93df-8fc73ce03054",
+          "required": true,
+          "error": {}
         },
         {
           "name": "tema",
@@ -290,6 +331,8 @@
           "type": "string",
           "GUID": "21d3723d-9d35-4a2d-a557-f9603c2a8e37",
           "required": false,
+          "minLength": 1,
+          "maxLength": 500,
           "error": {}
         },
         {
@@ -298,6 +341,9 @@
           "isActivated": true,
           "type": "string",
           "GUID": "2c92307d-db34-4e5f-87d3-7d2721d375a9",
+          "minLength": 1,
+          "maxLength": 500,
+          "required": false,
           "error": {}
         },
         {
@@ -306,14 +352,18 @@
           "isActivated": true,
           "type": "string",
           "GUID": "139130d5-512e-4bb4-99ed-8763c0fa47ef",
+          "minLength": 1,
+          "required": false,
           "error": {}
         },
         {
           "name": "fecha",
           "hackoladeMeta": {},
           "isActivated": true,
-          "type": "string",
+          "type": "date",
+          "primaryKey": false,
           "GUID": "cf06c60a-76c1-490d-824d-f2eb4cb7acbf",
+          "required": false,
           "error": {}
         },
         {
@@ -327,8 +377,9 @@
               "hackoladeMeta": {},
               "isActivated": true,
               "type": "objectId",
-              "error": {},
-              "GUID": "f1c70718-dafb-4b1c-bd34-ca56ef09d0e8"
+              "GUID": "f1c70718-dafb-4b1c-bd34-ca56ef09d0e8",
+              "required": true,
+              "error": {}
             },
             {
               "name": "url",
@@ -336,6 +387,9 @@
               "isActivated": true,
               "type": "string",
               "GUID": "0713b8cf-0ad5-489e-9fb7-ee1c182e8265",
+              "minLength": 1,
+              "maxLength": 500,
+              "required": true,
               "error": {}
             },
             {
@@ -344,6 +398,9 @@
               "isActivated": true,
               "type": "string",
               "GUID": "cc798cbf-670f-4c14-9bbd-5a1caa1865fb",
+              "minLength": 1,
+              "maxLength": 50,
+              "required": true,
               "error": {}
             },
             {
@@ -352,12 +409,16 @@
               "isActivated": true,
               "type": "string",
               "GUID": "e1f765df-c749-4f99-acff-61f218012be7",
+              "minLength": 1,
+              "maxLength": 50,
+              "required": true,
               "error": {}
             }
           ],
           "additionalProperties": false,
-          "error": {},
-          "GUID": "89bc022f-e4b9-41ce-97c8-018afb801bc8"
+          "GUID": "89bc022f-e4b9-41ce-97c8-018afb801bc8",
+          "required": true,
+          "error": {}
         }
       ],
       "definitions": {
@@ -443,20 +504,20 @@
         "dataType": "",
         "shape": [
           {
-            "x": 1268.4852607709752,
-            "y": 1302.5975056689344
+            "x": 1267.0175265264957,
+            "y": 1290.8556317130985
           },
           {
-            "x": 1326.759637188209,
-            "y": 1302.5975056689344
+            "x": 1324.5580358214893,
+            "y": 1290.8556317130985
           },
           {
-            "x": 1326.759637188209,
-            "y": 1303.2823129251701
+            "x": 1324.5580358214893,
+            "y": 1291.540438969334
           },
           {
-            "x": 1385.0340136054426,
-            "y": 1303.2823129251701
+            "x": 1382.098545116483,
+            "y": 1291.540438969334
           }
         ],
         "sides": [
@@ -499,26 +560,87 @@
         "dataType": "",
         "shape": [
           {
-            "x": 1502.7947845805002,
-            "y": 1050.1099773242622
+            "x": 1516.7947845805002,
+            "y": 1051.1099773242622
           },
           {
-            "x": 1502.7947845805002,
-            "y": 1101.1961451247162
+            "x": 1516.7947845805002,
+            "y": 1095.825208146798
           },
           {
-            "x": 1505.5340136054426,
-            "y": 1101.1961451247162
+            "x": 1517.598545116483,
+            "y": 1095.825208146798
           },
           {
-            "x": 1505.5340136054426,
-            "y": 1152.2823129251701
+            "x": 1517.598545116483,
+            "y": 1140.540438969334
           }
         ],
         "sides": [
           "bottom",
           "top"
         ]
+      }
+    },
+    {
+      "name": "fk_Usuario._id_to_Usuario.articulos.[0].idUsuario",
+      "relationshipType": "Foreign Key",
+      "parentField": [
+        [
+          "459c3981-c65a-4247-8655-5b262eea3b3b",
+          "6044ed9c-afa9-4193-b999-74cf202747f2"
+        ]
+      ],
+      "parentCardinality": "1",
+      "childField": [
+        [
+          "459c3981-c65a-4247-8655-5b262eea3b3b",
+          "5214d0d6-55e6-49e1-8843-1ca0422d3fb9",
+          "8e6c3b1d-02af-42d6-9df1-6a24e416c265",
+          "c4362880-cdea-4d84-bc8a-7f6ee1937162"
+        ]
+      ],
+      "isActivated": true,
+      "childCardinality": "0..n",
+      "GUID": "fc86dea7-7eb6-4c48-b193-3f786243450c",
+      "parentCollection": "459c3981-c65a-4247-8655-5b262eea3b3b",
+      "childCollection": "459c3981-c65a-4247-8655-5b262eea3b3b",
+      "hackoladeStyles": {
+        "GUID": "fc86dea7-7eb6-4c48-b193-3f786243450c",
+        "autoPositioning": false,
+        "type": "Orthogonal",
+        "thickness": 2,
+        "color": "#79c4ff",
+        "dataType": "",
+        "shape": [
+          {
+            "x": 1653.098545116483,
+            "y": 1363.2071056359998
+          },
+          {
+            "x": 1668.098545116483,
+            "y": 1363.2071056359998
+          },
+          {
+            "y": 1125.540438969334,
+            "x": 1668.098545116483
+          },
+          {
+            "y": 1125.540438969334,
+            "x": 1427.4318784498166
+          },
+          {
+            "x": 1427.4318784498166,
+            "y": 1140.540438969334
+          }
+        ],
+        "sides": [
+          "right",
+          "top"
+        ]
+      },
+      "hackoladeMeta": {
+        "validationErrors": {}
       }
     }
   ],
@@ -532,35 +654,36 @@
     "411d87ec-631e-47aa-b0d1-379fc221dfd9": "correo",
     "9e5bf364-a9cc-40fe-8349-50caef77368a": "contraseña",
     "03b49f9a-9b4d-4866-a6e1-531d5ce92b99": "Resultado",
-    "0701dcea-aff3-4d09-84e4-5f96866e3b5b": "id",
-    "6044ed9c-afa9-4193-b999-74cf202747f2": "id",
+    "0701dcea-aff3-4d09-84e4-5f96866e3b5b": "_id",
+    "6044ed9c-afa9-4193-b999-74cf202747f2": "_id",
     "4e28333b-d73f-4610-a64d-ac1d932908bb": "fechaExtraccion",
-    "af0abd1c-fc78-4f2c-b41a-8613466e5a25": "status",
+    "af0abd1c-fc78-4f2c-b41a-8613466e5a25": "estado",
     "67c51ce2-667f-4d7d-88bf-77b52672c9ea": "Notificacion",
     "8bc4ae9d-da0d-449c-a430-ee2082d23b15": "mensaje",
     "4206d75c-677a-4e36-88fb-b50673d05283": "tipo",
-    "074c9052-7969-4461-9691-99c2f0d7a17f": "id",
+    "074c9052-7969-4461-9691-99c2f0d7a17f": "_id",
     "fbe58485-f45d-4a37-8824-676183c24a4d": "leido",
     "43765ef2-d384-496b-9cf2-a433b8f44529": "idResultado",
     "98ca9856-7455-48ef-973a-40f7092f8a5a": "New Relationship",
     "cc091e33-b3d8-47ef-adbb-91c5f529e5b2": "Articulo",
-    "610ca5ac-2fa9-4606-be47-9844f371f168": "id",
-    "f6c0d40e-239d-4293-8f0f-60e48ff3b8a1": "idResultado",
+    "610ca5ac-2fa9-4606-be47-9844f371f168": "_id",
     "21d3723d-9d35-4a2d-a557-f9603c2a8e37": "tema",
     "2c92307d-db34-4e5f-87d3-7d2721d375a9": "titular",
     "139130d5-512e-4bb4-99ed-8763c0fa47ef": "cuerpo",
-    "cf06c60a-76c1-490d-824d-f2eb4cb7acbf": "fecha",
     "89bc022f-e4b9-41ce-97c8-018afb801bc8": "fuente",
     "f1c70718-dafb-4b1c-bd34-ca56ef09d0e8": "id",
     "0713b8cf-0ad5-489e-9fb7-ee1c182e8265": "url",
-    "cc798cbf-670f-4c14-9bbd-5a1caa1865fb": "nombre",
     "e1f765df-c749-4f99-acff-61f218012be7": "tipo",
     "7552e3d9-daef-40f0-93df-8fc73ce03054": "New Relationship1",
     "5214d0d6-55e6-49e1-8843-1ca0422d3fb9": "articulos",
     "c4362880-cdea-4d84-bc8a-7f6ee1937162": "idUsuario",
     "cf56cdc8-9cd8-4cae-9390-ffced76998c4": "idArticulo",
     "a9231942-c606-4f94-8a6e-9520f79fa7df": "descartado",
-    "841c20a8-03db-4344-a220-bb7f73fbbd15": "favorito"
+    "841c20a8-03db-4344-a220-bb7f73fbbd15": "favorito",
+    "f6c0d40e-239d-4293-8f0f-60e48ff3b8a1": "idResultado",
+    "cf06c60a-76c1-490d-824d-f2eb4cb7acbf": "fecha",
+    "cc798cbf-670f-4c14-9bbd-5a1caa1865fb": "nombre",
+    "fc86dea7-7eb6-4c48-b193-3f786243450c": "fk_Usuario._id_to_Usuario.articulos.[0].idUsuario"
   },
   "definitions": {
     "type": "definitions",
@@ -585,14 +708,14 @@
   "creationTS": "2025-10-29T14:02:04.291Z",
   "GUID": "96459a7d-1380-4e44-9293-18e3e16834d0",
   "isLineageEnabled": false,
-  "lastModifTS": "2025-11-18T16:22:42.986Z",
+  "lastModifTS": "2025-11-18T17:17:57.040Z",
   "persistenceSchemaVersion": "8",
   "isCreatedByPlugin": true,
   "pluginInformation": {
     "pluginEngineVersion": "1.0.0"
   },
   "applicationInformation": {
-    "version": "8.5.3"
+    "version": "8.6.0"
   },
   "hackoladeMeta": {},
   "settings": {
@@ -601,16 +724,16 @@
         "erd": [
           {
             "GUID": "459c3981-c65a-4247-8655-5b262eea3b3b",
-            "x": 1385.0340136054426,
-            "y": 1152.2823129251701,
-            "width": 241,
+            "x": 1382.098545116483,
+            "y": 1140.540438969334,
+            "width": 271,
             "height": 302,
             "color": {}
           },
           {
             "GUID": "67c51ce2-667f-4d7d-88bf-77b52672c9ea",
-            "x": 1067.4852607709752,
-            "y": 1237.0975056689344,
+            "x": 1066.0175265264957,
+            "y": 1225.3556317130985,
             "width": 201,
             "height": 131,
             "color": {}
@@ -619,8 +742,8 @@
             "GUID": "cc091e33-b3d8-47ef-adbb-91c5f529e5b2",
             "x": 1407.7947845805002,
             "y": 820.1099773242622,
-            "width": 190,
-            "height": 230,
+            "width": 218,
+            "height": 231,
             "color": {}
           }
         ],
@@ -632,7 +755,7 @@
         },
         "buckets": [
           {
-            "x": 1003.4852607709752,
+            "x": 1002.0175265264957,
             "y": 756.1099773242622,
             "GUID": "4f22003d-9f62-4784-97aa-35b5aa3e5b1c"
           }
