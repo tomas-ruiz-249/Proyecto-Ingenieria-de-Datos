@@ -1,8 +1,5 @@
 USE WebCrawler;
 
-INSERT INTO Usuario (nombres, apellidos, contraseña, correo)
-VALUES ("tomas", "ruiz", "1234", "tomasa.ruiz@urosario.edu.co");
-
 -- HU001: Registar Articulo 
 DELIMITER $$
 CREATE PROCEDURE RegistrarArticulo(
@@ -90,7 +87,6 @@ Begin
     ORDER BY r.fechaExtraccion DESC;
 End $$
 Delimiter ;
-
 
 -- HU004 Descartar articulos ---------------------------------------
 delimiter $$
@@ -653,3 +649,70 @@ BEGIN
     DELETE FROM Articulo WHERE idResultadoFK = OLD.id;
 END $$
 DELIMITER ;
+
+-- DOCUMENTACION SCRIPT RQF002: 
+-- Consultar artículo, El usuario podrá consultar los artículos que fueron recuperados del proceso 
+-- de web scraping por medio de consultas a la base de datos que realiza el sistema.
+
+-- Mi compañero Sebastian Mora me solicito hacer el RQF002 del proyecto "WebCrawler" el cual corresponde a "Consultar Artíulo" como 
+-- un proceso de almacenado así se que pasos a seguir:
+
+-- 1. Insertar información de usuario y resultado puesto que hay una relacion, de contrario arrojara error.
+INSERT INTO Usuario (nombres, apellidos, contraseña, correo)
+VALUES ("Juan", "Poveda", "vacaciones2025", "juanf.poveda@urosario.edu.co");
+
+INSERT INTO Resultado(idUsuarioFK, estado, fechaExtraccion)
+VALUES (1,1,NOW());
+
+--2: Insertar articulos ejemplos para procesar el RQF002, con su respectiva llave foranea resultado.
+INSERT INTO Articulo(tema, titular, subtitulo, cuerpo, fecha, idResultadoFk, favorito)
+VALUES 
+('Tecnología', 
+ 'La inteligencia artificial revoluciona la educación', 
+ 'Herramientas digitales transforman la forma de aprender', 
+ 'En los últimos años, la inteligencia artificial ha permitido crear plataformas educativas personalizadas, adaptando los contenidos al ritmo y estilo de aprendizaje de cada estudiante.', 
+ NOW(), 
+ 1, 
+ TRUE),
+
+('Ciencia', 
+ 'Descubren nueva especie en la selva amazónica', 
+ 'Un hallazgo que sorprende a la comunidad científica', 
+ 'Un grupo de biólogos ha identificado una nueva especie de rana fluorescente en una zona remota de la Amazonía. El descubrimiento podría aportar información clave sobre la biodiversidad tropical.', 
+ NOW(), 
+ 1, 
+ FALSE),
+
+('Deportes', 
+ 'El equipo nacional logra histórico triunfo', 
+ 'Una victoria que quedará en los libros', 
+ 'En un partido lleno de emoción, la selección nacional venció al campeón defensor con un marcador de 3-2, asegurando su pase a la final después de una década de espera.', 
+ NOW(), 
+ 1, 
+ TRUE);
+ 
+ -- Requisito funcional RQ002: Consultar Articulos, se hace una consulta sobre la tabla Articulo y se une a Resultado para ver la relacion 
+ -- de los arituculos y sus usuarios. 
+Delimiter $$
+Create Procedure ConsultarArticulos(IN idUsuarioP INT)
+Begin
+	Select * from Articulo a
+    INNER JOIN Resultado r ON r.id = a.idResultadoFK
+    WHERE idUsuarioP = r.idUsuarioFK;
+End $$
+Delimiter ;
+
+-- HU002: Llamo el proceso  y compruebo consultar artículos del usuario. 
+CALL ConsultarArticulos(1);
+
+/*Resultado esperado: 
+id 1,2,3 
+titular x, y, z 
+subtitulo x, y, z
+cuerpo x, y, z
+fecha x, y, z
+idResultadoFK 1, 1, 1
+favorito 1, 0, 1
+id 1, 1, 1
+fechaExtraccion NOW(), NOW(), NOW()
+*/
