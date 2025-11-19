@@ -50,6 +50,7 @@
           "format": "email",
           "minLength": 1,
           "maxLength": 50,
+          "required": true,
           "error": {}
         },
         {
@@ -178,7 +179,7 @@
           ],
           "additionalItems": true,
           "GUID": "5214d0d6-55e6-49e1-8843-1ca0422d3fb9",
-          "required": false,
+          "required": true,
           "error": {}
         }
       ],
@@ -661,7 +662,6 @@
     "67c51ce2-667f-4d7d-88bf-77b52672c9ea": "Notificacion",
     "8bc4ae9d-da0d-449c-a430-ee2082d23b15": "mensaje",
     "4206d75c-677a-4e36-88fb-b50673d05283": "tipo",
-    "074c9052-7969-4461-9691-99c2f0d7a17f": "_id",
     "fbe58485-f45d-4a37-8824-676183c24a4d": "leido",
     "43765ef2-d384-496b-9cf2-a433b8f44529": "idResultado",
     "98ca9856-7455-48ef-973a-40f7092f8a5a": "New Relationship",
@@ -683,7 +683,8 @@
     "f6c0d40e-239d-4293-8f0f-60e48ff3b8a1": "idResultado",
     "cf06c60a-76c1-490d-824d-f2eb4cb7acbf": "fecha",
     "cc798cbf-670f-4c14-9bbd-5a1caa1865fb": "nombre",
-    "fc86dea7-7eb6-4c48-b193-3f786243450c": "fk_Usuario._id_to_Usuario.articulos.[0].idUsuario"
+    "fc86dea7-7eb6-4c48-b193-3f786243450c": "fk_Usuario._id_to_Usuario.articulos.[0].idUsuario",
+    "074c9052-7969-4461-9691-99c2f0d7a17f": "_id"
   },
   "definitions": {
     "type": "definitions",
@@ -708,14 +709,14 @@
   "creationTS": "2025-10-29T14:02:04.291Z",
   "GUID": "96459a7d-1380-4e44-9293-18e3e16834d0",
   "isLineageEnabled": false,
-  "lastModifTS": "2025-11-18T17:17:57.040Z",
+  "lastModifTS": "2025-11-18T19:24:18.204Z",
   "persistenceSchemaVersion": "8",
   "isCreatedByPlugin": true,
   "pluginInformation": {
     "pluginEngineVersion": "1.0.0"
   },
   "applicationInformation": {
-    "version": "8.6.0"
+    "version": "8.5.3"
   },
   "hackoladeMeta": {},
   "settings": {
