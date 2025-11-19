@@ -1,9 +1,9 @@
 using System.Data;
 using MySqlConnector;
 
-class Repository
+class RepositorySQL : IRepository
 {
-    public Repository(string connectionString)
+    public RepositorySQL(string connectionString)
     {
         Connection = new MySqlConnection(connectionString);
         Connected = true;
@@ -58,6 +58,29 @@ class Repository
             Console.ForegroundColor = ConsoleColor.White;
         }
 
+        return success;
+    }
+    
+    public bool GenerateNotification(int idResult, string message, int type)
+    {
+        var success = false;
+        try
+        {
+            var procedure = "GenerarNotificacion";
+            var cmd = new MySqlCommand(procedure, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("p_id_resultado", idResult);
+            cmd.Parameters.AddWithValue("p_mensaje", message);
+            cmd.Parameters.AddWithValue("p_tipo", type);
+            var rowsAffected = cmd.ExecuteNonQuery();
+            success = true;
+        }
+        catch (Exception e)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine(e.Message);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
         return success;
     }
     

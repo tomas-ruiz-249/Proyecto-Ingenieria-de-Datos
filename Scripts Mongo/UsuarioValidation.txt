@@ -1,0 +1,35 @@
+{
+  $jsonSchema: {
+    bsonType: 'object',
+    title: 'Notificacion',
+    properties: {
+      _id: {
+        bsonType: 'objectId'
+      },
+      mensaje: {
+        bsonType: 'string',
+        maxLength: 50,
+        minLength: 1
+      },
+      tipo: {
+        bsonType: 'number',
+        maximum: 3,
+        minimum: 0
+      },
+      leido: {
+        bsonType: 'bool'
+      },
+      idResultado: {
+        bsonType: 'objectId'
+      }
+    },
+    additionalProperties: false,
+    required: [
+      '_id',
+      'mensaje',
+      'tipo',
+      'leido',
+      'idResultado'
+    ]
+  }
+}
