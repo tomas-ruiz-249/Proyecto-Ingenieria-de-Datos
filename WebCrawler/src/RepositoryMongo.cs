@@ -4,20 +4,18 @@ using MongoDB.Driver;
 
 class RepositoryMongo : IRepository
 {
-    RepositoryMongo(string connectionString)
+    public RepositoryMongo(string connectionString)
     {
-        if(connectionString == null)
+        if (connectionString == null)
         {
-            Console.ForegroundColor = ConsoleColor.DarkRed;
-            Console.WriteLine("You must provide a value for MONGODB_URL");
-            Console.ForegroundColor = ConsoleColor.White;
-            return;
+            throw new ArgumentNullException(nameof(connectionString), "You must provide a value for MONGODB_URL");
         }
         client = new MongoClient(connectionString);
         DB = client.GetDatabase("WebCrawlerCompass");
         Articulos = DB.GetCollection<BsonDocument>("Articulo");
-        Usuarios = DB.GetCollection<BsonDocument>("Notificacion");
-        Notificaciones = DB.GetCollection<BsonDocument>("Usuario");
+        Usuarios = DB.GetCollection<BsonDocument>("Usuario");
+        Notificaciones = DB.GetCollection<BsonDocument>("Notificacion");
+        Connected = true;
     }
     public bool ChangePassword(int userId, string newPassword)
     {
@@ -36,8 +34,32 @@ class RepositoryMongo : IRepository
 
     public bool DeleteUser(int userId)
     {
-        throw new NotImplementedException();
-        
+        // Delete by SQL-style numeric Id field stored in documents (keeps compatibility)
+        var filter = Builders<BsonDocument>.Filter.Eq("Id", userId);
+        var result = Usuarios.DeleteOne(filter);
+        return result.DeletedCount > 0;
+    }
+
+    // Overload: accept a string id that may be a MongoDB ObjectId (preferred) or a numeric SQL id.
+    public bool DeleteUser(string userId)
+    {
+        // Try as ObjectId first (delete by _id)
+        if (ObjectId.TryParse(userId, out var oid))
+        {
+            var filterOid = Builders<BsonDocument>.Filter.Eq("_id", oid);
+            var r = Usuarios.DeleteOne(filterOid);
+            if (r.DeletedCount > 0) return true;
+        }
+
+        // Fallback: try numeric Id field (SQL-style)
+        if (int.TryParse(userId, out var intId))
+        {
+            var filterInt = Builders<BsonDocument>.Filter.Eq("Id", intId);
+            var r2 = Usuarios.DeleteOne(filterInt);
+            return r2.DeletedCount > 0;
+        }
+
+        return false;
     }
 
     public bool DiscardArticles(int userId, List<int> discardIds)
