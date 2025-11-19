@@ -2,7 +2,7 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-class RepositoryMongo : IRepository
+class RepositoryMongo
 {
     public RepositoryMongo(string connectionString)
     {
@@ -34,32 +34,9 @@ class RepositoryMongo : IRepository
 
     public bool DeleteUser(int userId)
     {
-        // Delete by SQL-style numeric Id field stored in documents (keeps compatibility)
-        var filter = Builders<BsonDocument>.Filter.Eq("Id", userId);
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", userId);
         var result = Usuarios.DeleteOne(filter);
         return result.DeletedCount > 0;
-    }
-
-    // Overload: accept a string id that may be a MongoDB ObjectId (preferred) or a numeric SQL id.
-    public bool DeleteUser(string userId)
-    {
-        // Try as ObjectId first (delete by _id)
-        if (ObjectId.TryParse(userId, out var oid))
-        {
-            var filterOid = Builders<BsonDocument>.Filter.Eq("_id", oid);
-            var r = Usuarios.DeleteOne(filterOid);
-            if (r.DeletedCount > 0) return true;
-        }
-
-        // Fallback: try numeric Id field (SQL-style)
-        if (int.TryParse(userId, out var intId))
-        {
-            var filterInt = Builders<BsonDocument>.Filter.Eq("Id", intId);
-            var r2 = Usuarios.DeleteOne(filterInt);
-            return r2.DeletedCount > 0;
-        }
-
-        return false;
     }
 
     public bool DiscardArticles(int userId, List<int> discardIds)

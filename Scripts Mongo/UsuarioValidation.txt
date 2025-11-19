@@ -1,35 +1,87 @@
 {
   $jsonSchema: {
     bsonType: 'object',
-    title: 'Notificacion',
+    title: 'Usuario',
     properties: {
       _id: {
         bsonType: 'objectId'
       },
-      mensaje: {
+      nombres: {
+        bsonType: 'string',
+        maxLength: 50,
+        minLength: 0
+      },
+      apellidos: {
         bsonType: 'string',
         maxLength: 50,
         minLength: 1
       },
-      tipo: {
-        bsonType: 'number',
-        maximum: 3,
-        minimum: 0
+      correo: {
+        bsonType: 'string',
+        maxLength: 50,
+        minLength: 1
       },
-      leido: {
-        bsonType: 'bool'
+      'contraseña': {
+        bsonType: 'string',
+        maxLength: 30,
+        minLength: 1
       },
-      idResultado: {
-        bsonType: 'objectId'
+      Resultado: {
+        bsonType: 'object',
+        properties: {
+          _id: {
+            bsonType: 'objectId'
+          },
+          fechaExtraccion: {
+            bsonType: 'date'
+          },
+          estado: {
+            bsonType: 'number',
+            maximum: 3,
+            minimum: 0
+          }
+        },
+        additionalProperties: false,
+        required: [
+          '_id',
+          'fechaExtraccion',
+          'estado'
+        ]
+      },
+      articulos: {
+        bsonType: 'array',
+        additionalItems: true,
+        items: {
+          bsonType: 'object',
+          properties: {
+            idArticulo: {
+              bsonType: 'objectId'
+            },
+            descartado: {
+              bsonType: 'bool'
+            },
+            favorito: {
+              bsonType: 'bool'
+            }
+          },
+          additionalProperties: false,
+          required: [
+            'idUsuario',
+            'idArticulo',
+            'descartado',
+            'favorito'
+          ]
+        }
       }
     },
     additionalProperties: false,
     required: [
       '_id',
-      'mensaje',
-      'tipo',
-      'leido',
-      'idResultado'
+      'nombres',
+      'apellidos',
+      'correo',
+      'contraseña',
+      'articulos'
     ]
   }
 }
