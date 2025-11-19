@@ -1,5 +1,27 @@
+/*
+1#RegistrarResultado
+2#FiltrarArticulos
+3#RegistrarArticulo
+4#ActualizarContrasena
+#EliminarUsuario
+#CambiarCorreoUsuario
+#CambiarNombreApellidoUsuario
+#eliminar_resultado
+#eliminarArticulo
+#VisualizarResultadoExtraccion
+#toggle_favorito
+#ConsultarArticulos
+#RegistrarUsuario
+#ConsultarUsuario
+#IniciarSesion
+#FiltrarNotificacion
+#ConsultarNotificaciones
+#AsignarLecturaNotificacion
+#eliminar_notificacion
+*/
 USE WebCrawler;
 
+#si
 -- HU001: Registar Articulo 
 DELIMITER $$
 CREATE PROCEDURE RegistrarArticulo(
@@ -62,7 +84,7 @@ BEGIN
 END$$
 DELIMITER ;
 
-
+#si
 #HU002 Consultar Articulos
 Delimiter $$
 Create Procedure ConsultarArticulos(IN idUsuarioP INT)
@@ -77,17 +99,18 @@ End $$
 Delimiter ;
 
 
-#HU003 Mostrar articulos mas recientes
-Delimiter $$
-Create Procedure VisualizarArticulosRecientes(IN idUsuarioP INT)
-Begin
-    select a.*, r.fechaExtraccion from Articulo a
-    INNER JOIN Resultado r ON a.idResultadoFK = r.id
-    WHERE r.idUsuarioFK = idUsuario
-    ORDER BY r.fechaExtraccion DESC;
-End $$
-Delimiter ;
+-- #HU003 Mostrar articulos mas recientes
+-- Delimiter $$
+-- Create Procedure VisualizarArticulosRecientes(IN idUsuarioP INT)
+-- Begin
+--     select a.*, r.fechaExtraccion from Articulo a
+--     INNER JOIN Resultado r ON a.idResultadoFK = r.id
+--     WHERE r.idUsuarioFK = idUsuario
+--     ORDER BY r.fechaExtraccion DESC;
+-- End $$
+-- Delimiter ;
 
+#si
 -- HU004 Descartar articulos ---------------------------------------
 delimiter $$
 create procedure eliminarArticulo(
@@ -117,6 +140,7 @@ begin
 end$$
 delimiter ;
 
+#si
 -- HU005 Asignar articulos como favoritos-----------------------
 delimiter $$
 create procedure toggle_favorito(
@@ -210,6 +234,7 @@ delimiter ;
 -- End $$
 -- Delimiter ;
 
+#si
 -- HU011: Evitar articulos duplicados
 DELIMITER $$
 CREATE TRIGGER EvitarArticulosDuplicados
@@ -226,7 +251,6 @@ BEGIN
     END IF;
 END$$
 DELIMITER ;
--- SHOW TRIGGERS;
 
 -- HU012 Actualizar articulo -------------------------------------------------
 delimiter $$
@@ -274,6 +298,7 @@ BEGIN
 END $$
 DELIMITER ;
 
+#si
 #HU016 Eliminar datos asociados a un usuario
 DELIMITER $$
 CREATE TRIGGER EliminarDatosAsociadosUsuario
@@ -294,7 +319,8 @@ BEGIN
     WHERE idUsuarioP = r.idUsuarioFK;
 END $$
 DELIMITER ;
- 
+
+#si 
 -- HU018: Resultado de scraping 
 DELIMITER $$
 CREATE PROCEDURE RegistrarResultado(
@@ -346,6 +372,7 @@ begin
 end$$
 delimiter ;
 
+#si
 -- HU021 Eliminar Registros ------------------------------------------------ 
 delimiter $$
 create procedure eliminar_resultado(
@@ -359,6 +386,7 @@ begin
 end$$
 delimiter ;
 
+#si
 #HU022 Registrar Nuevo usuario en el sistema
 Delimiter $$
 Create Procedure RegistrarUsuario(
@@ -373,7 +401,7 @@ Begin
 End $$
 Delimiter ;
 
-
+#si
 #HU023 Iniciar sesion en la plataforma
 Delimiter $$
 Create Procedure IniciarSesion(IN xemail VARCHAR(30), IN xcontrasena VARCHAR(30), OUT xidUsuario INT)
@@ -386,6 +414,7 @@ Begin
 End $$
 Delimiter ;
 
+#si
 DELIMITER $$
 CREATE PROCEDURE ConsultarUsuario(IN idP INT)
 BEGIN
@@ -397,6 +426,7 @@ DELIMITER ;
 # esto ocurre en la interfaz
 
 
+#si
 #HU025 Actualizar contraseña del usuario
 Delimiter $$
 Create Procedure ActualizarContrasena(IN xnuevacontrasena VARCHAR(30), IN idUsuario INT)
@@ -407,6 +437,7 @@ Begin
 End $$
 Delimiter ;
 
+#si
 -- HU026 Eliminar Usuario---------------------------------------------- 
 delimiter $$
 create procedure EliminarUsuario(in p_id_usuario int)
@@ -428,6 +459,7 @@ BEGIN
 END $$
 DELIMITER ;
 
+#si
 #HU028 Consultar notificaciones del usuario
 DELIMITER $$
 CREATE PROCEDURE ConsultarNotificaciones(
@@ -452,6 +484,7 @@ BEGIN
 END $$
 DELIMITER ;
 
+#si
 #HU029 Marcar notificación como leída/no leída
 DELIMITER $$
 CREATE PROCEDURE AsignarLecturaNotificacion(
@@ -497,6 +530,7 @@ delimiter ;
 -- END $$
 -- DELIMITER ;
 
+#si
 #HU032 Visualizar los resultados de la extracción de artículos
 DELIMITER $$
 CREATE PROCEDURE VisualizarResultadoExtraccion(
@@ -521,6 +555,7 @@ BEGIN
 END $$
 DELIMITER ;
 
+#si
 #HU034 CambiarCorreo
 DELIMITER $$
 CREATE PROCEDURE CambiarCorreoUsuario(IN idUsuarioP INT,IN correoNuevo VARCHAR(50))
@@ -529,6 +564,7 @@ BEGIN
 END $$
 DELIMITER ;
 
+#si
 #HU035 Filtrar notificaciones por estado
 DELIMITER $$
 CREATE PROCEDURE FiltrarNotificacion(
@@ -546,7 +582,7 @@ BEGIN
 END $$
 DELIMITER ;
 
-#aqui
+#si
 #HU036 Filtrar articulos por busqueda avanzada 
 drop procedure FiltrarArticulos;	
 DELIMITER $$
@@ -574,7 +610,7 @@ BEGIN
 END $$
 DELIMITER ;
 
-
+#si
 #HU037 Cambiar nombre y apellido
 DELIMITER $$
 CREATE PROCEDURE CambiarNombreApellidoUsuario(IN idP INT, IN nuevoNombre VARCHAR(50), IN nuevoApellido VARCHAR(50)
@@ -584,6 +620,7 @@ BEGIN
 END $$
 DELIMITER ;
 
+#si
 #HU038 Evitar correos duplicados
 DELIMITER $$
 CREATE TRIGGER EvitarCorreosDuplicadosIns
@@ -597,6 +634,7 @@ BEGIN
 END$$
 DELIMITER ;
 
+#si
 DELIMITER $$
 CREATE TRIGGER EvitarCorreosDuplicadosUpdate
 BEFORE UPDATE ON Usuario
@@ -624,6 +662,7 @@ Begin
 End $$
 DELIMITER ;
 
+#si
 #HU040 Eliminar datos asociados a un articulo
 DELIMITER $$
 CREATE TRIGGER EliminarDatosAsociadosArticulo
@@ -639,6 +678,7 @@ BEGIN
 END $$;
 DELIMITER ;
 
+#si
 #HU041 Eliminar datos asociados a un resultado
 DELIMITER $$
 CREATE TRIGGER EliminarDatosAsociadosResultado
@@ -649,70 +689,3 @@ BEGIN
     DELETE FROM Articulo WHERE idResultadoFK = OLD.id;
 END $$
 DELIMITER ;
-
--- DOCUMENTACION SCRIPT RQF002: 
--- Consultar artículo, El usuario podrá consultar los artículos que fueron recuperados del proceso 
--- de web scraping por medio de consultas a la base de datos que realiza el sistema.
-
--- Mi compañero Sebastian Mora me solicito hacer el RQF002 del proyecto "WebCrawler" el cual corresponde a "Consultar Artíulo" como 
--- un proceso de almacenado así se que pasos a seguir:
-
--- 1. Insertar información de usuario y resultado puesto que hay una relacion, de contrario arrojara error.
-INSERT INTO Usuario (nombres, apellidos, contraseña, correo)
-VALUES ("Juan", "Poveda", "vacaciones2025", "juanf.poveda@urosario.edu.co");
-
-INSERT INTO Resultado(idUsuarioFK, estado, fechaExtraccion)
-VALUES (1,1,NOW());
-
---2: Insertar articulos ejemplos para procesar el RQF002, con su respectiva llave foranea resultado.
-INSERT INTO Articulo(tema, titular, subtitulo, cuerpo, fecha, idResultadoFk, favorito)
-VALUES 
-('Tecnología', 
- 'La inteligencia artificial revoluciona la educación', 
- 'Herramientas digitales transforman la forma de aprender', 
- 'En los últimos años, la inteligencia artificial ha permitido crear plataformas educativas personalizadas, adaptando los contenidos al ritmo y estilo de aprendizaje de cada estudiante.', 
- NOW(), 
- 1, 
- TRUE),
-
-('Ciencia', 
- 'Descubren nueva especie en la selva amazónica', 
- 'Un hallazgo que sorprende a la comunidad científica', 
- 'Un grupo de biólogos ha identificado una nueva especie de rana fluorescente en una zona remota de la Amazonía. El descubrimiento podría aportar información clave sobre la biodiversidad tropical.', 
- NOW(), 
- 1, 
- FALSE),
-
-('Deportes', 
- 'El equipo nacional logra histórico triunfo', 
- 'Una victoria que quedará en los libros', 
- 'En un partido lleno de emoción, la selección nacional venció al campeón defensor con un marcador de 3-2, asegurando su pase a la final después de una década de espera.', 
- NOW(), 
- 1, 
- TRUE);
- 
- -- Requisito funcional RQ002: Consultar Articulos, se hace una consulta sobre la tabla Articulo y se une a Resultado para ver la relacion 
- -- de los arituculos y sus usuarios. 
-Delimiter $$
-Create Procedure ConsultarArticulos(IN idUsuarioP INT)
-Begin
-	Select * from Articulo a
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    WHERE idUsuarioP = r.idUsuarioFK;
-End $$
-Delimiter ;
-
--- HU002: Llamo el proceso  y compruebo consultar artículos del usuario. 
-CALL ConsultarArticulos(1);
-
-/*Resultado esperado: 
-id 1,2,3 
-titular x, y, z 
-subtitulo x, y, z
-cuerpo x, y, z
-fecha x, y, z
-idResultadoFK 1, 1, 1
-favorito 1, 0, 1
-id 1, 1, 1
-fechaExtraccion NOW(), NOW(), NOW()
-*/

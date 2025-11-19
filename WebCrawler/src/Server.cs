@@ -11,7 +11,7 @@ class Server
         _listener.Prefixes.Add(prefix);
         _crawler = new Crawler();
 
-        _repository = new Repository("server=localhost;user=root;database=WebCrawler;port=3306;");
+        _repository = new RepositorySQL("server=localhost;user=root;database=WebCrawler;port=3306;");
         if (!_repository.ConnectToServer())
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -34,7 +34,7 @@ class Server
         }
         _crawler = new Crawler();
 
-        _repository = new Repository("server=localhost;user=root;database=WebCrawler;port=3306;");
+        _repository = new RepositorySQL("server=localhost;user=root;database=WebCrawler;port=3306;");
         if (!_repository.ConnectToServer())
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -617,6 +617,6 @@ class Server
 
     private readonly HttpListener _listener;
     private readonly Crawler _crawler;
-    private readonly Repository _repository;
+    private readonly RepositorySQL _repository;
     private const string _WebDirPath = "../../../../Interfaz web/";
 }

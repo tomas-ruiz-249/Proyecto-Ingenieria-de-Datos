@@ -17,7 +17,7 @@ class Crawler
         _visited = [];
     }
 
-    public async Task<List<(Articulo article, Fuente source)>> Crawl(string startUrl, Repository repository, int userId)
+    public async Task<List<(Articulo article, Fuente source)>> Crawl(string startUrl, RepositorySQL repository, int userId)
     {
         var scrapedArticles = new List<(Articulo article, Fuente source)>();
         if (!repository.Connected)
@@ -83,6 +83,10 @@ class Crawler
                 var articleSourceTuple = (articulo, fuente);
                 scrapedArticles.Add(articleSourceTuple);
             }
+            else
+            {
+                repository.GenerateNotification(resultId, $"Error registrando articulo {articulo.Titular}", 1);
+            }
 
         }
         _urls.Clear();
@@ -91,6 +95,7 @@ class Crawler
         Console.WriteLine($"scraping attempt ended with {articleCount} articles found and registered in the database...");
         Console.ForegroundColor = ConsoleColor.White;
         repository.SetResultFinished(resultId,articleCount);
+        repository.GenerateNotification(resultId, $"Se han encontrado {articleCount} articulos", 0);
         return scrapedArticles;
     }
 

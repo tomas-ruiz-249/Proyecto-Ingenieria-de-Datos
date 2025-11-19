@@ -40,7 +40,7 @@ create table Articulo(
 
 create table Notificacion(
     id int primary key auto_increment not null,
-	mensaje varchar(50) not null,
+	mensaje varchar(500) not null,
     tipo int not null,
     leido bool not null,
     idResultadoFK int not null,
