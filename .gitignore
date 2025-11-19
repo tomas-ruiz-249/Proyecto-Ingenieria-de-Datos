@@ -1,0 +1,5 @@
+WebCrawler/bin
+WebCrawler/obj
+*.csproj
+*.sln
+Modelo y Diccionario/MongoDB/MongoDBHackolade.json
