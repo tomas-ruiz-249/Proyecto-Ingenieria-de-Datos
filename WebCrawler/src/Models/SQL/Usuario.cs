@@ -27,6 +27,8 @@ class Usuario
         """;
     }
     public int Id { get; set; }
+    // MongoDB ObjectId (string) when the user originates from Mongo; empty otherwise
+    public string MongoId { get; set; } = string.Empty;
     public string Nombres { get; set; }
     public string Apellidos { get; set; }
     public string Correo { get; set; }
