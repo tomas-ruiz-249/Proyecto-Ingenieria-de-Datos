@@ -303,7 +303,7 @@ async function handleLogin(e) {
         console.error('error al iniciar sesion', error)
     }
     
-    if (userId != -1) {
+    if (userId != -1 & userId != "") {
         try {
             response = await fetch(`/api/get-user?id=${userId}`,{
                 method: "GET",
@@ -1286,7 +1286,7 @@ async function changePassword(e) {
     catch(error){
         console.error('error verificando contraseña', error)
     }
-    if(userId == -1){
+    if(userId == -1 || userId == ""){
         showAlert('Contraseña actual incorrecta...', 'error');
         return;
     }

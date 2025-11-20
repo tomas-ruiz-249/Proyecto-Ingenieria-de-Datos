@@ -1,11 +1,16 @@
 {
   $jsonSchema: {
     bsonType: 'object',
+<<<<<<< HEAD
     title: 'Articulo',
+=======
+    title: 'Usuario',
+>>>>>>> 58b0877 (mongo scraping)
     properties: {
       _id: {
         bsonType: 'objectId'
       },
+<<<<<<< HEAD
       idResultado: {
         bsonType: 'objectId'
       },
@@ -64,4 +69,91 @@
       'fuente'
     ]
       }
+=======
+      nombres: {
+        bsonType: 'string',
+        maxLength: 50,
+        minLength: 0
+      },
+      apellidos: {
+        bsonType: 'string',
+        maxLength: 50,
+        minLength: 1
+      },
+      correo: {
+        bsonType: 'string',
+        maxLength: 50,
+        minLength: 1
+      },
+      'contraseña': {
+        bsonType: 'string',
+        maxLength: 30,
+        minLength: 1
+      },
+      articulos: {
+        bsonType: 'array',
+        additionalItems: true,
+        items: {
+          bsonType: 'object',
+          properties: {
+            idArticulo: {
+              bsonType: 'objectId'
+            },
+            descartado: {
+              bsonType: 'bool'
+            },
+            favorito: {
+              bsonType: 'bool'
+            }
+          },
+          additionalProperties: false,
+          required: [
+            'idArticulo',
+            'descartado',
+            'favorito'
+          ]
+        }
+      },
+      resultados: {
+        bsonType: 'array',
+        additionalItems: true,
+        items: {
+          bsonType: 'object',
+          properties: {
+            _id: {
+              bsonType: 'objectId'
+            },
+            numArticulos: {
+              bsonType: 'number',
+              minimum: 0
+            },
+            fechaExtraccion: {
+              bsonType: 'date'
+            },
+            estado: {
+              bsonType: 'number',
+              maximum: 3,
+              minimum: 0
+            }
+          },
+          additionalProperties: false,
+          required: [
+            '_id',
+            'fechaExtraccion',
+            'estado'
+          ]
+        }
+      }
+    },
+    additionalProperties: false,
+    required: [
+      '_id',
+      'nombres',
+      'apellidos',
+      'correo',
+      'contraseña',
+      'articulos'
+    ]
+  }
+>>>>>>> 58b0877 (mongo scraping)
 }

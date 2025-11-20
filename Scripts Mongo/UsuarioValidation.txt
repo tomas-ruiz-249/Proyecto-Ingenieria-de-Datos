@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   $jsonSchema: {
     bsonType: 'object',
     title: 'Usuario',
@@ -85,3 +86,98 @@
     ]
   }
 }
+=======
+    "$jsonSchema": {
+        "bsonType": "object",
+        "title": "Usuario",
+        "properties": {
+            "_id": {
+                "bsonType": "objectId"
+            },
+            "nombres": {
+                "bsonType": "string",
+                "maxLength": 50,
+                "minLength": 0
+            },
+            "apellidos": {
+                "bsonType": "string",
+                "maxLength": 50,
+                "minLength": 1
+            },
+            "correo": {
+                "bsonType": "string",
+                "maxLength": 50,
+                "minLength": 1
+            },
+            "contraseña": {
+                "bsonType": "string",
+                "maxLength": 30,
+                "minLength": 1
+            },
+            "articulos": {
+                "bsonType": "array",
+                "additionalItems": true,
+                "items": {
+                    "bsonType": "object",
+                    "properties": {
+                        "idUsuario": {
+                            "bsonType": "objectId"
+                        },
+                        "idArticulo": {
+                            "bsonType": "objectId"
+                        },
+                        "descartado": {
+                            "bsonType": "bool"
+                        },
+                        "favorito": {
+                            "bsonType": "bool"
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "idUsuario",
+                        "idArticulo",
+                        "descartado",
+                        "favorito"
+                    ]
+                }
+            },
+            "resultados": {
+                "bsonType": "array",
+                "additionalItems": true,
+                "items": {
+                    "bsonType": "object",
+                    "properties": {
+                        "_id": {
+                            "bsonType": "objectId"
+                        },
+                        "fechaExtraccion": {
+                            "bsonType": "date"
+                        },
+                        "estado": {
+                            "bsonType": "number",
+                            "maximum": 3,
+                            "minimum": 0
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "_id",
+                        "fechaExtraccion",
+                        "estado"
+                    ]
+                }
+            }
+        },
+        "additionalProperties": false,
+        "required": [
+            "_id",
+            "nombres",
+            "apellidos",
+            "correo",
+            "contraseña",
+            "articulos"
+        ]
+    }
+}
+>>>>>>> 58b0877 (mongo scraping)

@@ -97,7 +97,7 @@ class Server
         {
             if (request.Url.AbsolutePath == "/api/get-notifications")
             {
-                var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+                var parsedUrl = HttpUtility.ParseQueryString(request.Url?.Query ?? string.Empty);
                 if (parsedUrl.Count == 1)
                 {
                     GetNotifications(context);
@@ -115,7 +115,7 @@ class Server
             }
             else if (request.Url.AbsolutePath == "/api/get-articles")
             {
-                var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+                var parsedUrl = HttpUtility.ParseQueryString(request.Url?.Query ?? string.Empty);
                 if (parsedUrl.Count == 1)
                 {
                     GetArticles(context);
@@ -186,7 +186,7 @@ class Server
 
         }
 
-        string path = GetFilePath(request.Url.LocalPath);
+        string path = GetFilePath(request.Url?.LocalPath ?? "/");
         if (File.Exists(path))
         {
             ServeFile(path, response);
@@ -202,9 +202,8 @@ class Server
         var response = context.Response;
         var request = context.Request;
 
-        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
-
-        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url?.Query ?? string.Empty);
+        var idStr = parsedUrl["id"];
         var titular = parsedUrl["titular"];
         var palabrasClave = parsedUrl["clave"];
         var tema = parsedUrl["tema"];
@@ -215,10 +214,11 @@ class Server
         List<ArticleSource> articles;
         if (_mongo)
         {
-            articles = _repositoryMongo.FilterArticles(id.ToString(), titular, palabrasClave, tema, nombreFuente, fecha1, fecha2);
+            articles = _repositoryMongo.FilterArticles(idStr ?? string.Empty, titular, palabrasClave, tema, nombreFuente, fecha1, fecha2);
         }
         else
         {
+            int id = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
             articles = _repository.FilterArticles(id, titular, palabrasClave, tema, nombreFuente, fecha1, fecha2);
         }
         string json = JsonSerializer.Serialize(articles);
@@ -237,7 +237,7 @@ class Server
         {
             var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
             var idStr = parsedUrl["id"];
-            int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+            int idInt = -1;
 
             var bodyStream = request.InputStream;
             var reader = new StreamReader(bodyStream, request.ContentEncoding);
@@ -254,6 +254,7 @@ class Server
             else
             {
                 // SQL expects int id and password not null
+                idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
                 if (idInt != -1 && !string.IsNullOrEmpty(newPassword))
                     success = _repository.ChangePassword(idInt, newPassword!);
             }
@@ -269,9 +270,9 @@ class Server
     {
         var request = context.Request;
         var response = context.Response;
-        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url?.Query ?? string.Empty);
         var idStr = parsedUrl["id"];
-        int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+        int idInt = -1;
 
         bool success = false;
         if (_mongo)
@@ -300,9 +301,9 @@ class Server
         var response = context.Response;
         if (request.HasEntityBody)
         {
-            var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
-            var idStr = parsedUrl["id"];
-            int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+                var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+                var idStr = parsedUrl["id"];
+                int idInt = -1;
 
             var bodyStream = request.InputStream;
             var reader = new StreamReader(bodyStream, request.ContentEncoding);
@@ -337,7 +338,7 @@ class Server
         {
             var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
             var idStr = parsedUrl["id"];
-            int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+            int idInt = -1;
 
             var bodyStream = request.InputStream;
             var reader = new StreamReader(bodyStream, request.ContentEncoding);
@@ -367,9 +368,9 @@ class Server
     {
         var request = context.Request;
         var response = context.Response;
-        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url?.Query ?? string.Empty);
         var idStr = parsedUrl["id"];
-        int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+        int idInt = -1;
         bool success = false;
         if (_mongo)
         {
@@ -378,6 +379,7 @@ class Server
         }
         else
         {
+            idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
             if (idInt != -1)
                 success = _repository.DeleteResults(idInt);
         }
@@ -395,7 +397,7 @@ class Server
         {
             var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
             var idStr = parsedUrl["id"];
-            int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+            int idInt = -1;
             var bodyStream = request.InputStream;
             var reader = new StreamReader(bodyStream, request.ContentEncoding);
             string body = reader.ReadToEnd();
@@ -409,6 +411,7 @@ class Server
             else
             {
                 var discardIds = JsonSerializer.Deserialize<List<int>>(body);
+                idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
                 if (idInt != -1 && discardIds != null)
                     success = _repository.DiscardArticles(idInt, discardIds);
             }
@@ -423,23 +426,38 @@ class Server
     {
         var response = context.Response;
         var request = context.Request;
-        var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
+        var parsedUrl = HttpUtility.ParseQueryString(request.Url?.Query ?? string.Empty);
         var idStr = parsedUrl["id"];
-        int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+        int idInt = -1;
         List<Result> results;
         if (_mongo)
         {
             results = _repositoryMongo.GetResults(idStr);
+            // For Mongo, return a list where only 'Id' is the string ObjectId (MongoId)
+            var responseList = results.Select(r => new {
+                Id = r.MongoId ?? string.Empty,
+                Estado = r.Estado,
+                FechaExtraccion = r.FechaExtraccion,
+                Cantidad = r.Cantidad
+            }).ToList();
+            string json = JsonSerializer.Serialize(responseList);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            response.ContentLength64 = buffer.Length;
+            response.ContentType = GetContentType(".json");
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+            return;
         }
         else
         {
+            idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
             results = _repository.GetResults(idInt);
         }
-        string json = JsonSerializer.Serialize(results);
-        byte[] buffer = Encoding.UTF8.GetBytes(json);
-        response.ContentLength64 = buffer.Length;
+        string sqlJson = JsonSerializer.Serialize(results);
+        byte[] sqlBuffer = Encoding.UTF8.GetBytes(sqlJson);
+        response.ContentLength64 = sqlBuffer.Length;
         response.ContentType = GetContentType(".json");
-        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Write(sqlBuffer, 0, sqlBuffer.Length);
         response.OutputStream.Close();
     }
 
@@ -474,15 +492,48 @@ class Server
     {
         var response = context.Response;
         var request = context.Request;
-
         var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
-        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
-        var articles = _repository.GetArticlesAndSources(id);
-        string json = JsonSerializer.Serialize(articles);
-        byte[] buffer = Encoding.UTF8.GetBytes(json);
-        response.ContentLength64 = buffer.Length;
+        var idStr = parsedUrl["id"];
+        int id;
+        List<ArticleSource> articles;
+        if (_mongo)
+        {
+            articles = _repositoryMongo.GetArticlesAndSources(idStr);
+            // Return only singular 'Id' field for articles (MongoId)
+            var responseList = articles.Select(a => new {
+                Article = new {
+                    Id = a.Article.MongoId,
+                    Tema = a.Article.Tema,
+                    Titular = a.Article.Titular,
+                    Subtitulo = a.Article.Subtitulo,
+                    Cuerpo = a.Article.Cuerpo,
+                    Fecha = a.Article.Fecha,
+                    Favorito = a.Article.Favorito
+                },
+                Source = new {
+                    Url = a.Source.Url,
+                    Tipo = a.Source.Tipo,
+                    Nombre = a.Source.Nombre
+                }
+            }).ToList();
+            string json = JsonSerializer.Serialize(responseList);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            response.ContentLength64 = buffer.Length;
+            response.ContentType = GetContentType(".json");
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+            return;
+        }
+        else
+        {
+            id = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+            articles = _repository.GetArticlesAndSources(id);
+        }
+        string sqlJson = JsonSerializer.Serialize(articles);
+        byte[] sqlBuffer = Encoding.UTF8.GetBytes(sqlJson);
+        response.ContentLength64 = sqlBuffer.Length;
         response.ContentType = GetContentType(".json");
-        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Write(sqlBuffer, 0, sqlBuffer.Length);
         response.OutputStream.Close();
     }
     private void RegisterUser(HttpListenerContext context)
@@ -526,20 +577,33 @@ class Server
         }
         var idStr = parsedUrl["id"];
         int idInt = -1;
-        object user;
         if (_mongo)
         {
-            user = _repositoryMongo.GetUser(idStr);
+            // Mongo path: return same object shape but with `id` set to the Mongo _id string
+            var user = _repositoryMongo.GetUser(idStr ?? string.Empty);
+            var responseObj = new
+            {
+                Id = user?.MongoId ?? string.Empty,
+                Nombres = user?.Nombres ?? string.Empty,
+                Apellidos = user?.Apellidos ?? string.Empty,
+                Correo = user?.Correo ?? string.Empty,
+                Contraseña = user?.Contraseña ?? string.Empty
+            };
+            var json = JsonSerializer.Serialize(responseObj);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+            return;
         }
-        else
-        {
-            idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
-            user = _repository.GetUser(idInt);
-        }
-        var json = JsonSerializer.Serialize(user);
-        byte[] buffer = Encoding.UTF8.GetBytes(json);
-        response.ContentLength64 = buffer.Length;
-        response.OutputStream.Write(buffer, 0, buffer.Length);
+
+        // SQL path: unchanged — return the Usuario object serialized as before
+        idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+        var sqlUser = _repository.GetUser(idInt);
+        var sqlJson = JsonSerializer.Serialize(sqlUser);
+        byte[] sqlBuffer = Encoding.UTF8.GetBytes(sqlJson);
+        response.ContentLength64 = sqlBuffer.Length;
+        response.OutputStream.Write(sqlBuffer, 0, sqlBuffer.Length);
         response.OutputStream.Close();
     }
 
@@ -547,49 +611,43 @@ class Server
     {
         var request = context.Request;
         var response = context.Response;
-        if (!request.HasEntityBody)
+        if (request.HasEntityBody)
         {
-            response.StatusCode = 400;
-            response.Close();
-            return;
-        }
+            var bodyStream = request.InputStream;
+            var reader = new StreamReader(bodyStream, request.ContentEncoding);
+            string body = reader.ReadToEnd();
+            var credenciales = JsonSerializer.Deserialize<Credenciales>(body);
+            if (credenciales == null)
+            {
+                response.StatusCode = 400;
+                response.Close();
+                return;
+            }
+            Console.WriteLine(credenciales.Correo + credenciales.Contraseña);
+            object idUsuario;
+            if (_mongo)
+            {
+                // Mongo returns string ObjectId (or empty string when not found)
+                idUsuario = _repositoryMongo.ValidateLogin(credenciales.Correo, credenciales.Contraseña);
+            }
+            else
+            {
+                // SQL returns int id (or -1 when not found)
+                idUsuario = _repository.ValidateLogin(credenciales.Correo, credenciales.Contraseña);
+            }
 
-        var bodyStream = request.InputStream;
-        var reader = new StreamReader(bodyStream, request.ContentEncoding);
-        string body = reader.ReadToEnd();
-        var credenciales = JsonSerializer.Deserialize<Credenciales>(body);
-        if (credenciales == null)
-        {
-            response.StatusCode = 400;
-            response.Close();
-            return;
+            var json = JsonSerializer.Serialize(idUsuario);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
         }
-
-        Console.WriteLine(credenciales.Correo + credenciales.Contraseña);
-        object idUsuario;
-        if (_mongo)
-        {
-            // Mongo returns string ObjectId (or empty string when not found)
-            idUsuario = _repositoryMongo.ValidateLogin(credenciales.Correo, credenciales.Contraseña);
-        }
-        else
-        {
-            // SQL returns int id (or -1 when not found)
-            idUsuario = _repository.ValidateLogin(credenciales.Correo, credenciales.Contraseña);
-        }
-
-        var json = JsonSerializer.Serialize(idUsuario);
-        byte[] buffer = Encoding.UTF8.GetBytes(json);
-        response.ContentLength64 = buffer.Length;
-        response.OutputStream.Write(buffer, 0, buffer.Length);
-        response.OutputStream.Close();
     }
 
     private void FilterNotifications(HttpListenerContext context)
     {
         var request = context.Request;
         var response = context.Response;
-
         var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
         if (parsedUrl == null)
         {
@@ -599,8 +657,18 @@ class Server
         }
         int? tipo = string.IsNullOrEmpty(parsedUrl["type"]) ? null : Convert.ToInt32(parsedUrl["type"]);
         bool? leido = string.IsNullOrEmpty(parsedUrl["read"]) ? null : Convert.ToInt32(parsedUrl["read"]) > 0;
-        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
-        var notifications = _repository.FilterNotifications(id, tipo, leido);
+        var idStr = parsedUrl["id"];
+        int id = -1;
+        List<Notificacion> notifications;
+        if (_mongo)
+        {
+            notifications = _repositoryMongo.FilterNotifications(idStr, tipo, leido);
+        }
+        else
+        {
+            id = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+            notifications = _repository.FilterNotifications(id, tipo, leido);
+        }
         var responseObj = new
         {
             notifList = notifications
@@ -624,7 +692,7 @@ class Server
             return;
         }
         var idStr = parsedUrl["id"];
-        int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+        int idInt = -1;
         Console.WriteLine($"DELETING NOTIF WITH ID {idStr}");
         if (_mongo)
         {
@@ -633,6 +701,7 @@ class Server
         }
         else
         {
+            idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
             if (idInt != -1)
                 _repository.DeleteNotification(idInt);
         }
@@ -672,7 +741,6 @@ class Server
     {
         var response = context.Response;
         var request = context.Request;
-
         var parsedUrl = HttpUtility.ParseQueryString(request.Url.Query);
         if (parsedUrl == null)
         {
@@ -680,8 +748,18 @@ class Server
             response.Close();
             return;
         }
-        int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
-        var notifications = _repository.GetNotifications(id);
+        var idStr = parsedUrl["id"];
+        int id = -1;
+        List<Notificacion> notifications;
+        if (_mongo)
+        {
+            notifications = _repositoryMongo.GetNotifications(idStr ?? string.Empty);
+        }
+        else
+        {
+            id = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+            notifications = _repository.GetNotifications(id);
+        }
         var responseObj = new
         {
             notifList = notifications
@@ -712,21 +790,77 @@ class Server
                 response.Close();
                 return;
             }
-            int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
 
             var scrapedData = new List<(Articulo article, Fuente source)>();
-            foreach (var source in sources)
+            if (_mongo)
             {
-                var scrapedArticles = await _crawler.Crawl(source, _repository, id);
-                scrapedData.AddRange(scrapedArticles);
+                var userId = parsedUrl["id"] ?? string.Empty;
+                foreach (var source in sources)
+                {
+                    var scrapedArticles = await _crawler.Crawl(source, _repositoryMongo, userId);
+                    scrapedData.AddRange(scrapedArticles);
+                }
+            }
+            else
+            {
+                int id = string.IsNullOrEmpty(parsedUrl["id"]) ? -1 : Convert.ToInt32(parsedUrl["id"]);
+                foreach (var source in sources)
+                {
+                    var scrapedArticles = await _crawler.Crawl(source, _repository, id);
+                    scrapedData.AddRange(scrapedArticles);
+                }
             }
 
-            var responseObj = new
+
+            object responseObj;
+            if (_mongo)
             {
-                articleList = scrapedData.Select(t => t.article).ToList(),
-                sourceList = scrapedData.Select(t => t.source).ToList(),
-                result = _crawler.LastResult
-            };
+                responseObj = new {
+                    articleList = scrapedData.Select(t => new {
+                        Id = t.article.MongoId,
+                        Tema = t.article.Tema,
+                        Titular = t.article.Titular,
+                        Subtitulo = t.article.Subtitulo,
+                        Cuerpo = t.article.Cuerpo,
+                        Fecha = t.article.Fecha,
+                        IdResultado = t.article.IdResultadoMongo,
+                        Favorito = t.article.Favorito
+                    }).ToList(),
+                    sourceList = scrapedData.Select(t => new {
+                        Url = t.source.Url,
+                        Tipo = t.source.Tipo,
+                        Nombre = t.source.Nombre
+                    }).ToList(),
+                    result = new {
+                        Id = _crawler.LastResult.MongoId,
+                        Estado = _crawler.LastResult.Estado,
+                        FechaExtraccion = _crawler.LastResult.FechaExtraccion,
+                        Cantidad = _crawler.LastResult.Cantidad
+                    } 
+                };
+            }
+            else
+            {
+                responseObj = new {
+                    articleList = scrapedData.Select(t => new {
+                        Id = t.article.Id,
+                        Tema = t.article.Tema,
+                        Titular = t.article.Titular,
+                        Subtitulo = t.article.Subtitulo,
+                        Cuerpo = t.article.Cuerpo,
+                        Fecha = t.article.Fecha,
+                        IdResultado = t.article.IdResultado,
+                        Favorito = t.article.Favorito
+                    }).ToList(),
+                    sourceList = scrapedData.Select(t => new {
+                        Id = t.source.Id,
+                        Url = t.source.Url,
+                        Tipo = t.source.Tipo,
+                        Nombre = t.source.Nombre
+                    }).ToList(),
+                    result = _crawler.LastResult
+                };
+            }
 
             string json = JsonSerializer.Serialize(responseObj);
             byte[] buffer = Encoding.UTF8.GetBytes(json);
