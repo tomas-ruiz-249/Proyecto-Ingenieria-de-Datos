@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 58b0877 (mongo scraping)
 using MongoDB.Bson;
 using MongoDB.Driver;
 
@@ -56,25 +52,6 @@ class RepositoryMongo
                 : Builders<BsonDocument>.Filter.Eq("_id", userId);
             var userDoc = Usuarios.Find(userFilter).FirstOrDefault();
             if (userDoc == null) return false;
-<<<<<<< HEAD
-            // If user has Resultado subdocument, remove related articles and notifications
-            var resultado = userDoc.Contains("Resultado") ? userDoc["Resultado"] : null;
-            if (resultado != null && resultado.IsBsonDocument)
-            {
-                var resId = resultado.AsBsonDocument.Contains("_id") ? resultado["_id"].ToString() : null;
-                if (!string.IsNullOrEmpty(resId) && ObjectId.TryParse(resId, out ObjectId resid))
-                {
-                    // delete articles with idResultado == resid
-                    var artFilter = Builders<BsonDocument>.Filter.Eq("idResultado", resid.ToString());
-                    Articulos.DeleteMany(artFilter);
-                    // delete notifications referencing this result
-                    var notifFilter = Builders<BsonDocument>.Filter.Eq("idResultado", resid.ToString());
-                    Notificaciones.DeleteMany(notifFilter);
-                }
-            }
-            // unset Resultado and clear Articulos reference array
-            var update = Builders<BsonDocument>.Update.Unset("Resultado").Unset("articulos");
-=======
             // Remove all articles and notifications for all resultados in the array
             if (userDoc.Contains("resultados") && userDoc["resultados"].IsBsonArray)
             {
@@ -100,7 +77,6 @@ class RepositoryMongo
             }
             // clear resultados and articulos arrays
             var update = Builders<BsonDocument>.Update.Set("resultados", new BsonArray()).Set("articulos", new BsonArray());
->>>>>>> 58b0877 (mongo scraping)
             var res = Usuarios.UpdateOne(userFilter, update);
             return res.ModifiedCount > 0;
         }
@@ -133,11 +109,7 @@ class RepositoryMongo
                 if (!ObjectId.TryParse(aid, out ObjectId aobj)) continue;
                 var arrayFilter = Builders<BsonDocument>.Filter.And(
                     Builders<BsonDocument>.Filter.Eq("_id", uoid),
-<<<<<<< HEAD
-                    Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", aid)
-=======
                     Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", aobj)
->>>>>>> 58b0877 (mongo scraping)
                 );
                 var update = Builders<BsonDocument>.Update.Set("articulos.$.descartado", true);
                 Usuarios.UpdateOne(arrayFilter, update);
@@ -197,15 +169,28 @@ class RepositoryMongo
             var userDoc = Usuarios.Find(userFilter).FirstOrDefault();
             if (userDoc == null) return result;
             var articRefs = new List<string>();
+            // map of article id -> favorito flag from the user's articulos array
+            var articuloFavoritoMap = new Dictionary<string, bool>();
             if (userDoc.Contains("articulos") && userDoc["articulos"].IsBsonArray)
             {
                 foreach (var ar in userDoc["articulos"].AsBsonArray)
                 {
-                    if (ar.AsBsonDocument.Contains("idArticulo"))
+                    if (ar.IsBsonDocument && ar.AsBsonDocument.Contains("idArticulo"))
                     {
                         var val = ar.AsBsonDocument.GetValue("idArticulo", BsonNull.Value);
                         var idStr = val.IsBsonNull ? string.Empty : val.ToString();
-                        if (!string.IsNullOrEmpty(idStr)) articRefs.Add(idStr);
+                        if (!string.IsNullOrEmpty(idStr))
+                        {
+                            articRefs.Add(idStr);
+                            // read favorito flag if present, default false
+                            var fav = false;
+                            if (ar.AsBsonDocument.Contains("favorito") && ar.AsBsonDocument["favorito"].BsonType == BsonType.Boolean)
+                            {
+                                fav = ar.AsBsonDocument["favorito"].AsBoolean;
+                            }
+                            // store mapping (last occurrence wins)
+                            articuloFavoritoMap[idStr] = fav;
+                        }
                     }
                 }
             }
@@ -218,14 +203,12 @@ class RepositoryMongo
                 var titularVal = d.Contains("titular") ? d["titular"].AsString : string.Empty;
                 // simple text filters
                 if (!string.IsNullOrEmpty(titular) && !titularVal.Contains(titular, StringComparison.OrdinalIgnoreCase)) continue;
-                if (!string.IsNullOrEmpty(tema) && !temaVal.Equals(tema, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!string.IsNullOrEmpty(tema) && !temaVal.Contains(tema, StringComparison.OrdinalIgnoreCase)) continue;
                 // build Articulo and Fuente
                 var cuerpo = d.Contains("cuerpo") ? d["cuerpo"].AsString : string.Empty;
                 var fecha = d.Contains("fecha") && d["fecha"].IsValidDateTime ? d["fecha"].ToUniversalTime().ToString("o") : string.Empty;
                 var idResultado = d.Contains("idResultado") ? d["idResultado"].ToString() : "";
                 var articulo = new Articulo(temaVal, titularVal, string.Empty, cuerpo, fecha, -1, false);
-<<<<<<< HEAD
-=======
                 // set MongoId and Id from _id
                 if (d.Contains("_id"))
                 {
@@ -235,7 +218,6 @@ class RepositoryMongo
                     if (int.TryParse(idVal.ToString(), out idInt))
                         articulo.Id = idInt;
                 }
->>>>>>> 58b0877 (mongo scraping)
                 // fuente nested
                 Fuente fuente = new Fuente(string.Empty, string.Empty, string.Empty);
                 if (d.Contains("fuente") && d["fuente"].IsBsonDocument)
@@ -262,26 +244,12 @@ class RepositoryMongo
         try
         {
             if (string.IsNullOrEmpty(idUsuario)) return list;
-<<<<<<< HEAD
-            // find user's resultado id if any
-=======
             // find user's result ids if any
->>>>>>> 58b0877 (mongo scraping)
             var userFilter = ObjectId.TryParse(idUsuario, out ObjectId uoid)
                 ? Builders<BsonDocument>.Filter.Eq("_id", uoid)
                 : Builders<BsonDocument>.Filter.Eq("_id", idUsuario);
             var userDoc = Usuarios.Find(userFilter).FirstOrDefault();
             if (userDoc == null) return list;
-<<<<<<< HEAD
-            string? resId = null;
-            if (userDoc.Contains("Resultado") && userDoc["Resultado"].IsBsonDocument)
-            {
-                var rd = userDoc["Resultado"].AsBsonDocument;
-                var val = rd.GetValue("_id", BsonNull.Value);
-                resId = val.IsBsonNull ? null : val.ToString();
-            }
-            var filter = resId != null ? Builders<BsonDocument>.Filter.Eq("idResultado", resId) : Builders<BsonDocument>.Filter.Empty;
-=======
             var resultIds = new List<ObjectId>();
             if (userDoc.Contains("resultados") && userDoc["resultados"].IsBsonArray)
             {
@@ -298,7 +266,6 @@ class RepositoryMongo
                 }
             }
             var filter = resultIds.Count > 0 ? Builders<BsonDocument>.Filter.In("idResultado", resultIds) : Builders<BsonDocument>.Filter.Empty;
->>>>>>> 58b0877 (mongo scraping)
             if (tipo.HasValue) filter &= Builders<BsonDocument>.Filter.Eq("tipo", tipo.Value);
             if (leido.HasValue) filter &= Builders<BsonDocument>.Filter.Eq("leido", leido.Value);
             var docs = Notificaciones.Find(filter).ToList();
@@ -308,15 +275,8 @@ class RepositoryMongo
                 var mensaje = d.Contains("mensaje") ? d["mensaje"].AsString : string.Empty;
                 var tipoVal = d.Contains("tipo") ? d["tipo"].AsInt32 : 0;
                 var leidoVal = d.Contains("leido") ? d["leido"].AsBoolean : false;
-<<<<<<< HEAD
-                var idRes = d.Contains("idResultado") ? d["idResultado"].ToString() : string.Empty;
-                int idResInt = -1;
-                int.TryParse(idRes, out idResInt);
-                list.Add(new Notificacion(-1, mensaje, tipoVal, leidoVal, idResInt));
-=======
                 // idResultado is stored as ObjectId in Mongo; we return -1 for SQL-style IdResultado
                 list.Add(new Notificacion(-1, mensaje, tipoVal, leidoVal, -1));
->>>>>>> 58b0877 (mongo scraping)
             }
         }
         catch (Exception ex)
@@ -330,24 +290,17 @@ class RepositoryMongo
     {
         try
         {
-<<<<<<< HEAD
-=======
             ObjectId objIdResult;
             if (!ObjectId.TryParse(idResult, out objIdResult))
             {
                 objIdResult = ObjectId.GenerateNewId();
             }
->>>>>>> 58b0877 (mongo scraping)
             var doc = new BsonDocument
             {
                 { "mensaje", message },
                 { "tipo", type },
                 { "leido", false },
-<<<<<<< HEAD
-                { "idResultado", idResult }
-=======
                 { "idResultado", objIdResult }
->>>>>>> 58b0877 (mongo scraping)
             };
             Notificaciones.InsertOne(doc);
             return true;
@@ -370,16 +323,30 @@ class RepositoryMongo
             var userDoc = Usuarios.Find(userFilter).FirstOrDefault();
             if (userDoc == null) return result;
             var articRefs = new List<string>();
+            // build map of article id -> favorito flag from the user's articulos array
+            var articuloFavoritoMap = new Dictionary<string, bool>();
             if (userDoc.Contains("articulos") && userDoc["articulos"].IsBsonArray)
             {
                 foreach (var ar in userDoc["articulos"].AsBsonArray)
                 {
-                    if (ar.AsBsonDocument.Contains("idArticulo"))
+                    if (!ar.IsBsonDocument || !ar.AsBsonDocument.Contains("idArticulo")) continue;
+                    var idVal = ar.AsBsonDocument.GetValue("idArticulo", BsonNull.Value);
+                    var idStr = idVal.IsBsonNull ? string.Empty : idVal.ToString();
+                    if (string.IsNullOrEmpty(idStr)) continue;
+                    // skip if descartado == true
+                    var descartado = false;
+                    if (ar.AsBsonDocument.Contains("descartado") && ar.AsBsonDocument["descartado"].BsonType == BsonType.Boolean)
                     {
-                        var val = ar.AsBsonDocument.GetValue("idArticulo", BsonNull.Value);
-                        var idStr = val.IsBsonNull ? string.Empty : val.ToString();
-                        if (!string.IsNullOrEmpty(idStr)) articRefs.Add(idStr);
+                        descartado = ar.AsBsonDocument["descartado"].AsBoolean;
                     }
+                    if (descartado) continue;
+                    articRefs.Add(idStr);
+                    var fav = false;
+                    if (ar.AsBsonDocument.Contains("favorito") && ar.AsBsonDocument["favorito"].BsonType == BsonType.Boolean)
+                    {
+                        fav = ar.AsBsonDocument["favorito"].AsBoolean;
+                    }
+                    articuloFavoritoMap[idStr] = fav;
                 }
             }
             if (articRefs.Count == 0) return result;
@@ -392,15 +359,17 @@ class RepositoryMongo
                 var cuerpo = d.Contains("cuerpo") ? d["cuerpo"].AsString : string.Empty;
                 var fecha = d.Contains("fecha") && d["fecha"].IsValidDateTime ? d["fecha"].ToUniversalTime().ToString("o") : string.Empty;
                 var articulo = new Articulo(temaVal, titularVal, string.Empty, cuerpo, fecha, -1, false);
-<<<<<<< HEAD
-=======
                 // set MongoId from _id (do not set Id, which is for SQL)
                 if (d.Contains("_id"))
                 {
                     var idVal = d["_id"];
                     articulo.MongoId = idVal?.ToString() ?? string.Empty;
                 }
->>>>>>> 58b0877 (mongo scraping)
+                // set Favorito from user's articulos mapping when available
+                if (!string.IsNullOrEmpty(articulo.MongoId) && articuloFavoritoMap.TryGetValue(articulo.MongoId, out var isFav))
+                {
+                    articulo.Favorito = isFav;
+                }
                 Fuente fuente = new Fuente(string.Empty, string.Empty, string.Empty);
                 if (d.Contains("fuente") && d["fuente"].IsBsonDocument)
                 {
@@ -420,29 +389,11 @@ class RepositoryMongo
         return result;
     }
 
-<<<<<<< HEAD
-    public Result? GetLastResult(string id)
-=======
     public Result? GetResult(string id)
->>>>>>> 58b0877 (mongo scraping)
     {
         try
         {
             if (string.IsNullOrEmpty(id)) return default;
-<<<<<<< HEAD
-            var userFilter = ObjectId.TryParse(id, out ObjectId uoid)
-                ? Builders<BsonDocument>.Filter.Eq("_id", uoid)
-                : Builders<BsonDocument>.Filter.Eq("_id", id);
-            var userDoc = Usuarios.Find(userFilter).FirstOrDefault();
-            if (userDoc == null) return default;
-            if (userDoc.Contains("Resultado") && userDoc["Resultado"].IsBsonDocument)
-            {
-                var rd = userDoc["Resultado"].AsBsonDocument;
-                var estado = rd.Contains("estado") ? rd["estado"].AsInt32 : -1;
-                var fecha = rd.Contains("fechaExtraccion") ? rd["fechaExtraccion"].ToUniversalTime().ToString("o") : string.Empty;
-                return new Result(-1, -1, estado, fecha);
-            }
-=======
 
             var userFilter = ObjectId.TryParse(id, out ObjectId uoid)
                 ? Builders<BsonDocument>.Filter.Eq("_id", uoid)
@@ -469,7 +420,6 @@ class RepositoryMongo
                 }
             }
 
->>>>>>> 58b0877 (mongo scraping)
             return default;
         }
         catch
@@ -482,15 +432,6 @@ class RepositoryMongo
     {
         try
         {
-<<<<<<< HEAD
-            // Return last Resultado id from any user if present (best-effort)
-            var doc = Usuarios.Find(Builders<BsonDocument>.Filter.Exists("Resultado")).Sort(Builders<BsonDocument>.Sort.Descending("Resultado.fechaExtraccion")).FirstOrDefault();
-            if (doc != null && doc.Contains("Resultado") && doc["Resultado"].IsBsonDocument)
-            {
-                var rd = doc["Resultado"].AsBsonDocument;
-                var val = rd.GetValue("_id", BsonNull.Value);
-                return val.IsBsonNull ? string.Empty : val.ToString()!;
-=======
             // Find the user with the most recent result in the 'resultados' array
             var userDoc = Usuarios.Find(Builders<BsonDocument>.Filter.Exists("resultados")).Sort(Builders<BsonDocument>.Sort.Descending("resultados.fechaExtraccion")).FirstOrDefault();
             if (userDoc != null && userDoc.Contains("resultados") && userDoc["resultados"].IsBsonArray)
@@ -521,10 +462,9 @@ class RepositoryMongo
                     if (latest != null && latest.Contains("_id"))
                     {
                         var val = latest["_id"];
-                        return val.IsBsonNull ? string.Empty : val.ToString();
+                        return val?.ToString() ?? string.Empty;
                     }
                 }
->>>>>>> 58b0877 (mongo scraping)
             }
             return string.Empty;
         }
@@ -545,16 +485,6 @@ class RepositoryMongo
                 : Builders<BsonDocument>.Filter.Eq("_id", idUsuario);
             var userDoc = Usuarios.Find(userFilter).FirstOrDefault();
             if (userDoc == null) return list;
-<<<<<<< HEAD
-            string? resId = null;
-            if (userDoc.Contains("Resultado") && userDoc["Resultado"].IsBsonDocument)
-            {
-                var rd = userDoc["Resultado"].AsBsonDocument;
-                var val = rd.GetValue("_id", BsonNull.Value);
-                resId = val.IsBsonNull ? null : val.ToString();
-            }
-            var filter = resId != null ? Builders<BsonDocument>.Filter.Eq("idResultado", resId) : Builders<BsonDocument>.Filter.Empty;
-=======
             // Collect all result ids for this user
             var resultIds = new List<ObjectId>();
             if (userDoc.Contains("resultados") && userDoc["resultados"].IsBsonArray)
@@ -572,21 +502,13 @@ class RepositoryMongo
                 }
             }
             var filter = resultIds.Count > 0 ? Builders<BsonDocument>.Filter.In("idResultado", resultIds) : Builders<BsonDocument>.Filter.Empty;
->>>>>>> 58b0877 (mongo scraping)
             var docs = Notificaciones.Find(filter).ToList();
             foreach (var d in docs)
             {
                 var mensaje = d.Contains("mensaje") ? d["mensaje"].AsString : string.Empty;
                 var tipoVal = d.Contains("tipo") ? d["tipo"].AsInt32 : 0;
                 var leidoVal = d.Contains("leido") ? d["leido"].AsBoolean : false;
-<<<<<<< HEAD
-                var idRes = d.Contains("idResultado") ? d["idResultado"].ToString() : string.Empty;
-                int idResInt = -1;
-                int.TryParse(idRes, out idResInt);
-                list.Add(new Notificacion(-1, mensaje, tipoVal, leidoVal, idResInt));
-=======
                 list.Add(new Notificacion(-1, mensaje, tipoVal, leidoVal, -1));
->>>>>>> 58b0877 (mongo scraping)
             }
         }
         catch (Exception ex)
@@ -607,14 +529,6 @@ class RepositoryMongo
                 : Builders<BsonDocument>.Filter.Eq("_id", userId);
             var userDoc = Usuarios.Find(userFilter).FirstOrDefault();
             if (userDoc == null) return list;
-<<<<<<< HEAD
-            if (userDoc.Contains("Resultado") && userDoc["Resultado"].IsBsonDocument)
-            {
-                var rd = userDoc["Resultado"].AsBsonDocument;
-                var estado = rd.Contains("estado") ? rd["estado"].AsInt32 : -1;
-                var fecha = rd.Contains("fechaExtraccion") ? rd["fechaExtraccion"].ToUniversalTime().ToString("o") : string.Empty;
-                list.Add(new Result(-1, -1, estado, fecha));
-=======
             if (userDoc.Contains("resultados") && userDoc["resultados"].IsBsonArray)
             {
                 var resultadosArray = userDoc["resultados"].AsBsonArray;
@@ -636,7 +550,6 @@ class RepositoryMongo
                         list.Add(res);
                     }
                 }
->>>>>>> 58b0877 (mongo scraping)
             }
         }
         catch (Exception ex)
@@ -679,18 +592,6 @@ class RepositoryMongo
             var filter = ObjectId.TryParse(userId, out ObjectId oid)
                 ? Builders<BsonDocument>.Filter.Eq("_id", oid)
                 : Builders<BsonDocument>.Filter.Eq("_id", userId);
-<<<<<<< HEAD
-            var newResultId = ObjectId.GenerateNewId().ToString();
-            var resultadoDoc = new BsonDocument
-            {
-                { "_id", new ObjectId(newResultId) },
-                { "fechaExtraccion", DateTime.UtcNow },
-                { "estado", 2 }
-            };
-            var update = Builders<BsonDocument>.Update.Set("Resultado", resultadoDoc);
-            Usuarios.UpdateOne(filter, update);
-            // create notification
-=======
 
             var newResultObjId = ObjectId.GenerateNewId();
             var resultadoDoc = new BsonDocument
@@ -704,22 +605,15 @@ class RepositoryMongo
             Usuarios.UpdateOne(filter, update);
 
             // create notification with ObjectId
->>>>>>> 58b0877 (mongo scraping)
             var notif = new BsonDocument
             {
                 { "mensaje", "Scraping iniciado..." },
                 { "tipo", 2 },
                 { "leido", false },
-<<<<<<< HEAD
-                { "idResultado", newResultId }
-            };
-            Notificaciones.InsertOne(notif);
-=======
                 { "idResultado", newResultObjId }
             };
             Notificaciones.InsertOne(notif);
 
->>>>>>> 58b0877 (mongo scraping)
             return true;
         }
         catch
@@ -742,14 +636,10 @@ class RepositoryMongo
                 { "apellidos", u.Apellidos ?? string.Empty },
                 { "correo", u.Correo ?? string.Empty },
                 { "contraseña", u.Contraseña ?? string.Empty },
-<<<<<<< HEAD
-                { "articulos", new BsonArray() }
-=======
                 // articulos: empty array, each entry must have idUsuario, idArticulo, descartado, favorito
                 { "articulos", new BsonArray() },
                 // resultados: empty array
                 { "resultados", new BsonArray() }
->>>>>>> 58b0877 (mongo scraping)
             };
             Usuarios.InsertOne(doc);
             return true;
@@ -766,16 +656,6 @@ class RepositoryMongo
         try
         {
             if (string.IsNullOrEmpty(resultId)) return false;
-<<<<<<< HEAD
-            // find user that has this resultado and update estado to 0 and numArticulos if present
-            var userFilter = Builders<BsonDocument>.Filter.Eq("Resultado._id", new ObjectId(resultId));
-            var update = Builders<BsonDocument>.Update.Set("Resultado.estado", 0).Set("Resultado.numArticulos", articleCount);
-            var res = Usuarios.UpdateOne(userFilter, update);
-            return res.ModifiedCount > 0;
-        }
-        catch
-        {
-=======
             if (!ObjectId.TryParse(resultId, out ObjectId resObjId)) return false;
             // Find the user with this result in resultados array
             var userFilter = Builders<BsonDocument>.Filter.ElemMatch("resultados", Builders<BsonDocument>.Filter.Eq("_id", resObjId));
@@ -793,7 +673,6 @@ class RepositoryMongo
         catch(Exception e)
         {
             Console.WriteLine(e.Message);
->>>>>>> 58b0877 (mongo scraping)
             return false;
         }
     }
@@ -803,48 +682,17 @@ class RepositoryMongo
         try
         {
             if (a == null || f == null || string.IsNullOrEmpty(idResultado)) return false;
-<<<<<<< HEAD
-=======
             // ensure idResultado is an ObjectId
             ObjectId objIdResult;
             if (!ObjectId.TryParse(idResultado, out objIdResult))
             {
                 objIdResult = ObjectId.GenerateNewId();
             }
->>>>>>> 58b0877 (mongo scraping)
             // check duplicate by titular + fuente.url
             var existing = Articulos.Find(Builders<BsonDocument>.Filter.And(
                 Builders<BsonDocument>.Filter.Eq("titular", a.Titular ?? string.Empty),
                 Builders<BsonDocument>.Filter.Eq("fuente.url", f.Url ?? string.Empty)
             )).FirstOrDefault();
-<<<<<<< HEAD
-            string artId;
-            if (existing != null)
-            {
-                var val = existing.GetValue("_id", BsonNull.Value);
-                artId = val.IsBsonNull ? ObjectId.GenerateNewId().ToString() : val.ToString()!;
-            }
-            else
-            {
-                var doc = new BsonDocument
-                {
-                    { "tema", a.Tema ?? string.Empty },
-                    { "titular", a.Titular ?? string.Empty },
-                    { "subtitulo", a.Subtitulo ?? string.Empty },
-                    { "cuerpo", a.Cuerpo ?? string.Empty },
-                    { "fecha", DateTime.TryParse(a.Fecha, out var dt) ? dt : (BsonValue)BsonNull.Value },
-                    { "idResultado", idResultado },
-                    { "fuente", new BsonDocument { { "url", f.Url ?? string.Empty }, { "tipo", f.Tipo ?? string.Empty }, { "nombre", f.Nombre ?? string.Empty } } }
-                };
-                Articulos.InsertOne(doc);
-                var val = doc.GetValue("_id", BsonNull.Value);
-                artId = val.IsBsonNull ? ObjectId.GenerateNewId().ToString() : val.ToString()!;
-            }
-            // attach to user found by idResultado
-            // find user that has this Resultado
-            var userFilter = Builders<BsonDocument>.Filter.Eq("Resultado._id", new ObjectId(idResultado));
-            var update = Builders<BsonDocument>.Update.Push("articulos", new BsonDocument { { "idArticulo", artId }, { "descartado", false }, { "favorito", false } });
-=======
             if (existing != null)
             {
                 // Article already exists, do not insert anything, return false
@@ -885,7 +733,6 @@ class RepositoryMongo
                 { "favorito", false }
             };
             var update = Builders<BsonDocument>.Update.Push("articulos", articuloRef);
->>>>>>> 58b0877 (mongo scraping)
             Usuarios.UpdateOne(userFilter, update);
             return true;
         }
@@ -902,15 +749,11 @@ class RepositoryMongo
         {
             if (string.IsNullOrEmpty(articleId)) return false;
             // toggle favorito for all users that have this article in articulos array
-<<<<<<< HEAD
-            var filter = Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", articleId);
-=======
             // prefer comparing as ObjectId when possible
             ObjectId articleObjId;
             var filter = ObjectId.TryParse(articleId, out articleObjId)
                 ? Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", articleObjId)
                 : Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", articleId);
->>>>>>> 58b0877 (mongo scraping)
             var users = Usuarios.Find(filter).ToList();
             foreach (var u in users)
             {
@@ -922,15 +765,6 @@ class RepositoryMongo
                 for (int i = 0; i < arr.Count; i++)
                 {
                     var item = arr[i].AsBsonDocument;
-<<<<<<< HEAD
-                    if (item.Contains("idArticulo") && item["idArticulo"].ToString() == articleId)
-                    {
-                        var current = item.Contains("favorito") ? item["favorito"].AsBoolean : false;
-                        var arrayFilter = Builders<BsonDocument>.Filter.And(
-                            Builders<BsonDocument>.Filter.Eq("_id", uId),
-                            Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", articleId)
-                        );
-=======
                     if (item.Contains("idArticulo"))
                     {
                         var match = false;
@@ -953,7 +787,6 @@ class RepositoryMongo
                                 Builders<BsonDocument>.Filter.Eq("_id", uId),
                                 Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", articleId)
                               );
->>>>>>> 58b0877 (mongo scraping)
                         var update = Builders<BsonDocument>.Update.Set("articulos.$.favorito", !current);
                         Usuarios.UpdateOne(arrayFilter, update);
                     }
