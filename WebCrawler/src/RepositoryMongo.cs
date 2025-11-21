@@ -15,6 +15,26 @@ class RepositoryMongo
         Usuarios = DB.GetCollection<BsonDocument>("Usuario");
         Notificaciones = DB.GetCollection<BsonDocument>("Notificacion");
         Connected = true;
+        // Ensure Mongo-side constraints / indexes that mirror SQL triggers
+        try
+        {
+            // Ensure unique emails for usuarios (matches EvitarCorreosDuplicados trigger)
+            var userEmailIndex = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("correo"), new CreateIndexOptions { Unique = true, Name = "uniq_correo" });
+            Usuarios.Indexes.CreateOne(userEmailIndex);
+
+            // Ensure unique articles by (titular, fecha) to emulate EvitarArticulosDuplicados trigger
+            var articuloIndex = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("titular").Ascending("fecha"), new CreateIndexOptions { Unique = true, Name = "uniq_titular_fecha" });
+            Articulos.Indexes.CreateOne(articuloIndex);
+
+            // Helpful index on Notificacion.idResultado for cascade lookups
+            var notifIndex = new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("idResultado"), new CreateIndexOptions { Name = "idx_idResultado" });
+            Notificaciones.Indexes.CreateOne(notifIndex);
+        }
+        catch (Exception ex)
+        {
+            // index creation failures should not block repository initialization
+            Console.WriteLine($"Warning creating indexes: {ex.Message}");
+        }
     }
     public bool ChangePassword(string userId, string newPassword)
     {
@@ -88,9 +108,94 @@ class RepositoryMongo
 
     public bool DeleteUser(string userId)
     {
-        var filter = Builders<BsonDocument>.Filter.Eq("_id", userId);
-        var result = Usuarios.DeleteOne(filter);
-        return result.DeletedCount > 0;
+        try
+        {
+            if (string.IsNullOrEmpty(userId)) return false;
+            // locate user and collect referenced article ids before deletion
+            var userFilter = ObjectId.TryParse(userId, out ObjectId uoid)
+                ? Builders<BsonDocument>.Filter.Eq("_id", uoid)
+                : Builders<BsonDocument>.Filter.Eq("_id", userId);
+            var userDoc = Usuarios.Find(userFilter).FirstOrDefault();
+            if (userDoc == null) return false;
+
+            var articleIds = new List<ObjectId>();
+            if (userDoc.Contains("articulos") && userDoc["articulos"].IsBsonArray)
+            {
+                foreach (var ar in userDoc["articulos"].AsBsonArray)
+                {
+                    if (!ar.IsBsonDocument) continue;
+                    var idVal = ar.AsBsonDocument.GetValue("idArticulo", BsonNull.Value);
+                    if (idVal.IsBsonNull) continue;
+                    if (idVal.BsonType == BsonType.ObjectId) articleIds.Add(idVal.AsObjectId);
+                    else if (ObjectId.TryParse(idVal.ToString(), out var parsed)) articleIds.Add(parsed);
+                }
+            }
+
+            // remove notifications and articles associated to user's resultados (mirror trigger EliminarDatosAsociadosUsuario)
+            if (userDoc.Contains("resultados") && userDoc["resultados"].IsBsonArray)
+            {
+                foreach (var resultado in userDoc["resultados"].AsBsonArray)
+                {
+                    if (!resultado.IsBsonDocument || !resultado.AsBsonDocument.Contains("_id")) continue;
+                    var resIdVal = resultado.AsBsonDocument.GetValue("_id", BsonNull.Value);
+                    if (resIdVal.IsBsonNull) continue;
+                    if (resIdVal.BsonType == BsonType.ObjectId)
+                    {
+                        var resid = resIdVal.AsObjectId;
+                        Articulos.DeleteMany(Builders<BsonDocument>.Filter.Eq("idResultado", resid));
+                        Notificaciones.DeleteMany(Builders<BsonDocument>.Filter.Eq("idResultado", resid));
+                    }
+                    else if (ObjectId.TryParse(resIdVal.ToString(), out var parsedRes))
+                    {
+                        Articulos.DeleteMany(Builders<BsonDocument>.Filter.Eq("idResultado", parsedRes));
+                        Notificaciones.DeleteMany(Builders<BsonDocument>.Filter.Eq("idResultado", parsedRes));
+                    }
+                }
+            }
+
+            // delete the user doc
+            var delRes = Usuarios.DeleteOne(userFilter);
+            if (delRes.DeletedCount == 0) return false;
+
+            // For each article previously referenced by this user, if no other user references it (non-descartado), delete the article
+            foreach (var aid in articleIds)
+            {
+                var otherFilter = Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", aid);
+                var otherUsers = Usuarios.Find(otherFilter).ToList();
+                var stillReferenced = false;
+                foreach (var ou in otherUsers)
+                {
+                    if (!ou.Contains("articulos") || !ou["articulos"].IsBsonArray) continue;
+                    foreach (var entry in ou["articulos"].AsBsonArray)
+                    {
+                        if (!entry.IsBsonDocument) continue;
+                        var ent = entry.AsBsonDocument;
+                        var idVal = ent.GetValue("idArticulo", BsonNull.Value);
+                        if (idVal.IsBsonNull) continue;
+                        if (idVal.BsonType == BsonType.ObjectId && idVal.AsObjectId == aid)
+                        {
+                            var descartado = ent.Contains("descartado") && ent["descartado"].BsonType == BsonType.Boolean && ent["descartado"].AsBoolean;
+                            if (!descartado) { stillReferenced = true; break; }
+                        }
+                        else if (idVal.ToString() == aid.ToString())
+                        {
+                            var descartado = ent.Contains("descartado") && ent["descartado"].BsonType == BsonType.Boolean && ent["descartado"].AsBoolean;
+                            if (!descartado) { stillReferenced = true; break; }
+                        }
+                    }
+                    if (stillReferenced) break;
+                }
+                if (!stillReferenced)
+                {
+                    Articulos.DeleteOne(Builders<BsonDocument>.Filter.Eq("_id", aid));
+                }
+            }
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public bool DiscardArticles(string userId, List<string> discardIds)
@@ -107,12 +212,41 @@ class RepositoryMongo
             foreach (var aid in discardIds)
             {
                 if (!ObjectId.TryParse(aid, out ObjectId aobj)) continue;
-                var arrayFilter = Builders<BsonDocument>.Filter.And(
-                    Builders<BsonDocument>.Filter.Eq("_id", uoid),
-                    Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", aobj)
-                );
-                var update = Builders<BsonDocument>.Update.Set("articulos.$.descartado", true);
-                Usuarios.UpdateOne(arrayFilter, update);
+                // Remove the article reference from the user's `articulos` array instead of marking `descartado`.
+                // Use the previously computed `userFilter` to match the correct user document.
+                var pullUpdate = Builders<BsonDocument>.Update.PullFilter("articulos", Builders<BsonDocument>.Filter.Eq("idArticulo", aobj));
+                Usuarios.UpdateOne(userFilter, pullUpdate);
+
+                // After discarding for this user, if no other user references this article as non-descartado, delete the article (mirror eliminarArticulo trigger behavior)
+                var otherUsersFilter = Builders<BsonDocument>.Filter.Eq("articulos.idArticulo", aobj);
+                var others = Usuarios.Find(otherUsersFilter).ToList();
+                var stillReferenced = false;
+                foreach (var ou in others)
+                {
+                    if (!ou.Contains("articulos") || !ou["articulos"].IsBsonArray) continue;
+                    foreach (var entry in ou["articulos"].AsBsonArray)
+                    {
+                        if (!entry.IsBsonDocument) continue;
+                        var ent = entry.AsBsonDocument;
+                        var idVal = ent.GetValue("idArticulo", BsonNull.Value);
+                        if (idVal.IsBsonNull) continue;
+                        if (idVal.BsonType == BsonType.ObjectId && idVal.AsObjectId == aobj)
+                        {
+                            var descartado = ent.Contains("descartado") && ent["descartado"].BsonType == BsonType.Boolean && ent["descartado"].AsBoolean;
+                            if (!descartado) { stillReferenced = true; break; }
+                        }
+                        else if (idVal.ToString() == aobj.ToString())
+                        {
+                            var descartado = ent.Contains("descartado") && ent["descartado"].BsonType == BsonType.Boolean && ent["descartado"].AsBoolean;
+                            if (!descartado) { stillReferenced = true; break; }
+                        }
+                    }
+                    if (stillReferenced) break;
+                }
+                if (!stillReferenced)
+                {
+                    Articulos.DeleteOne(Builders<BsonDocument>.Filter.Eq("_id", aobj));
+                }
             }
             return true;
         }
@@ -175,23 +309,24 @@ class RepositoryMongo
             {
                 foreach (var ar in userDoc["articulos"].AsBsonArray)
                 {
-                    if (ar.IsBsonDocument && ar.AsBsonDocument.Contains("idArticulo"))
+                    if (!ar.IsBsonDocument || !ar.AsBsonDocument.Contains("idArticulo")) continue;
+                    var val = ar.AsBsonDocument.GetValue("idArticulo", BsonNull.Value);
+                    var idStr = val.IsBsonNull ? string.Empty : val.ToString();
+                    if (string.IsNullOrEmpty(idStr)) continue;
+                    // skip if descartado == true
+                    var descartado = false;
+                    if (ar.AsBsonDocument.Contains("descartado") && ar.AsBsonDocument["descartado"].BsonType == BsonType.Boolean)
                     {
-                        var val = ar.AsBsonDocument.GetValue("idArticulo", BsonNull.Value);
-                        var idStr = val.IsBsonNull ? string.Empty : val.ToString();
-                        if (!string.IsNullOrEmpty(idStr))
-                        {
-                            articRefs.Add(idStr);
-                            // read favorito flag if present, default false
-                            var fav = false;
-                            if (ar.AsBsonDocument.Contains("favorito") && ar.AsBsonDocument["favorito"].BsonType == BsonType.Boolean)
-                            {
-                                fav = ar.AsBsonDocument["favorito"].AsBoolean;
-                            }
-                            // store mapping (last occurrence wins)
-                            articuloFavoritoMap[idStr] = fav;
-                        }
+                        descartado = ar.AsBsonDocument["descartado"].AsBoolean;
                     }
+                    if (descartado) continue;
+                    articRefs.Add(idStr);
+                    var fav = false;
+                    if (ar.AsBsonDocument.Contains("favorito") && ar.AsBsonDocument["favorito"].BsonType == BsonType.Boolean)
+                    {
+                        fav = ar.AsBsonDocument["favorito"].AsBoolean;
+                    }
+                    articuloFavoritoMap[idStr] = fav;
                 }
             }
             if (articRefs.Count == 0) return result;
@@ -206,19 +341,28 @@ class RepositoryMongo
                 if (!string.IsNullOrEmpty(tema) && !temaVal.Contains(tema, StringComparison.OrdinalIgnoreCase)) continue;
                 // build Articulo and Fuente
                 var cuerpo = d.Contains("cuerpo") ? d["cuerpo"].AsString : string.Empty;
+                // filter by palabrasClave: must appear in cuerpo
+                if (!string.IsNullOrEmpty(palabrasClave) && !cuerpo.Contains(palabrasClave, StringComparison.OrdinalIgnoreCase)) continue;
                 var fecha = d.Contains("fecha") && d["fecha"].IsValidDateTime ? d["fecha"].ToUniversalTime().ToString("o") : string.Empty;
-                var idResultado = d.Contains("idResultado") ? d["idResultado"].ToString() : "";
+                // date range filtering: parse fecha1/fecha2 and compare against d["fecha"] when present
+                if (d.Contains("fecha") && d["fecha"].IsValidDateTime)
+                {
+                    var artDate = d["fecha"].ToUniversalTime();
+                    if (!string.IsNullOrEmpty(fecha1) && DateTime.TryParse(fecha1, out var f1) && artDate < f1.ToUniversalTime()) continue;
+                    if (!string.IsNullOrEmpty(fecha2) && DateTime.TryParse(fecha2, out var f2) && artDate > f2.ToUniversalTime()) continue;
+                }
+                var idResultado = d.Contains("idResultado") ? d["idResultado"].ToString() : string.Empty;
                 var articulo = new Articulo(temaVal, titularVal, string.Empty, cuerpo, fecha, -1, false);
                 // set MongoId and Id from _id
                 if (d.Contains("_id"))
                 {
                     var idVal = d["_id"];
-                    articulo.MongoId = idVal.ToString();
+                    articulo.MongoId = idVal?.ToString() ?? string.Empty;
                     int idInt;
-                    if (int.TryParse(idVal.ToString(), out idInt))
+                    if (int.TryParse(idVal?.ToString() ?? string.Empty, out idInt))
                         articulo.Id = idInt;
                 }
-                // fuente nested
+                // fuente nested and nombreFuente filter
                 Fuente fuente = new Fuente(string.Empty, string.Empty, string.Empty);
                 if (d.Contains("fuente") && d["fuente"].IsBsonDocument)
                 {
@@ -226,7 +370,20 @@ class RepositoryMongo
                     var url = f.Contains("url") ? f["url"].AsString : string.Empty;
                     var tipoVal = f.Contains("tipo") ? f["tipo"].AsString : string.Empty;
                     var nombreVal = f.Contains("nombre") ? f["nombre"].AsString : string.Empty;
+                    // filter by nombreFuente if provided
+                    if (!string.IsNullOrEmpty(nombreFuente) && !nombreVal.Contains(nombreFuente, StringComparison.OrdinalIgnoreCase)) continue;
                     fuente = new Fuente(url, tipoVal, nombreVal);
+                    // populate MongoId when present (store ObjectId as string)
+                    if (f.Contains("id") && !f.GetValue("id", BsonNull.Value).IsBsonNull)
+                    {
+                        var idVal = f.GetValue("id", BsonNull.Value);
+                        fuente.MongoId = idVal?.ToString() ?? string.Empty;
+                    }
+                }
+                // set Favorito from user's articulos mapping when available
+                if (!string.IsNullOrEmpty(articulo.MongoId) && articuloFavoritoMap.TryGetValue(articulo.MongoId, out var isFav))
+                {
+                    articulo.Favorito = isFav;
                 }
                 result.Add(new ArticleSource(articulo, fuente));
             }
@@ -271,12 +428,19 @@ class RepositoryMongo
             var docs = Notificaciones.Find(filter).ToList();
             foreach (var d in docs)
             {
-                var id = d.Contains("_id") ? d["_id"].ToString() : "";
+                var id = d.Contains("_id") ? d["_id"].ToString() : string.Empty;
                 var mensaje = d.Contains("mensaje") ? d["mensaje"].AsString : string.Empty;
                 var tipoVal = d.Contains("tipo") ? d["tipo"].AsInt32 : 0;
                 var leidoVal = d.Contains("leido") ? d["leido"].AsBoolean : false;
-                // idResultado is stored as ObjectId in Mongo; we return -1 for SQL-style IdResultado
-                list.Add(new Notificacion(-1, mensaje, tipoVal, leidoVal, -1));
+                // create Notificacion and set MongoId + IdResultadoMongo so server can return singular Id fields for Mongo responses
+                var notif = new Notificacion(-1, mensaje, tipoVal, leidoVal, -1);
+                notif.MongoId = id ?? string.Empty;
+                // idResultado is stored as ObjectId in notifications; capture it as string for responses
+                if (d.Contains("idResultado") && !d.GetValue("idResultado", BsonNull.Value).IsBsonNull)
+                {
+                    notif.IdResultadoMongo = d.GetValue("idResultado", BsonNull.Value)?.ToString() ?? string.Empty;
+                }
+                list.Add(notif);
             }
         }
         catch (Exception ex)
@@ -378,6 +542,12 @@ class RepositoryMongo
                     var tipoVal = f.Contains("tipo") ? f["tipo"].AsString : string.Empty;
                     var nombreVal = f.Contains("nombre") ? f["nombre"].AsString : string.Empty;
                     fuente = new Fuente(url, tipoVal, nombreVal);
+                    // preserve fuente id as string (if present) so callers can emit ObjectId as string for Mongo responses
+                    if (f.Contains("id") && !f.GetValue("id", BsonNull.Value).IsBsonNull)
+                    {
+                        var idVal = f.GetValue("id", BsonNull.Value);
+                        fuente.MongoId = idVal?.ToString() ?? string.Empty;
+                    }
                 }
                 result.Add(new ArticleSource(articulo, fuente));
             }
@@ -505,10 +675,17 @@ class RepositoryMongo
             var docs = Notificaciones.Find(filter).ToList();
             foreach (var d in docs)
             {
+                var id = d.Contains("_id") ? d["_id"].ToString() : string.Empty;
                 var mensaje = d.Contains("mensaje") ? d["mensaje"].AsString : string.Empty;
                 var tipoVal = d.Contains("tipo") ? d["tipo"].AsInt32 : 0;
                 var leidoVal = d.Contains("leido") ? d["leido"].AsBoolean : false;
-                list.Add(new Notificacion(-1, mensaje, tipoVal, leidoVal, -1));
+                var notif = new Notificacion(-1, mensaje, tipoVal, leidoVal, -1);
+                notif.MongoId = id ?? string.Empty;
+                if (d.Contains("idResultado") && !d.GetValue("idResultado", BsonNull.Value).IsBsonNull)
+                {
+                    notif.IdResultadoMongo = d.GetValue("idResultado", BsonNull.Value)?.ToString() ?? string.Empty;
+                }
+                list.Add(notif);
             }
         }
         catch (Exception ex)
@@ -688,11 +865,31 @@ class RepositoryMongo
             {
                 objIdResult = ObjectId.GenerateNewId();
             }
-            // check duplicate by titular + fuente.url
-            var existing = Articulos.Find(Builders<BsonDocument>.Filter.And(
-                Builders<BsonDocument>.Filter.Eq("titular", a.Titular ?? string.Empty),
-                Builders<BsonDocument>.Filter.Eq("fuente.url", f.Url ?? string.Empty)
-            )).FirstOrDefault();
+            // check duplicates to emulate SQL trigger EvitarArticulosDuplicados (titular + fecha)
+            BsonValue fechaVal = BsonNull.Value;
+            DateTime parsedFecha;
+            var hasFecha = DateTime.TryParse(a.Fecha, out parsedFecha);
+            if (hasFecha)
+            {
+                fechaVal = parsedFecha;
+            }
+            FilterDefinition<BsonDocument> dupFilter;
+            if (hasFecha)
+            {
+                dupFilter = Builders<BsonDocument>.Filter.And(
+                    Builders<BsonDocument>.Filter.Eq("titular", a.Titular ?? string.Empty),
+                    Builders<BsonDocument>.Filter.Eq("fecha", parsedFecha)
+                );
+            }
+            else
+            {
+                // fallback to titular + fuente.url when fecha not provided
+                dupFilter = Builders<BsonDocument>.Filter.And(
+                    Builders<BsonDocument>.Filter.Eq("titular", a.Titular ?? string.Empty),
+                    Builders<BsonDocument>.Filter.Eq("fuente.url", f.Url ?? string.Empty)
+                );
+            }
+            var existing = Articulos.Find(dupFilter).FirstOrDefault();
             if (existing != null)
             {
                 // Article already exists, do not insert anything, return false
@@ -809,7 +1006,7 @@ class RepositoryMongo
         var doc = Notificaciones.Find(filter).FirstOrDefault();
         if (doc == null) return;
         var current = doc.Contains("leido") ? doc["leido"].AsBoolean : false;
-        var update = Builders<BsonDocument>.Update.Set("leido", !current);
+        var update = Builders<BsonDocument>.Update.Set("leido", true);
         Notificaciones.UpdateOne(filter, update);
     }
 

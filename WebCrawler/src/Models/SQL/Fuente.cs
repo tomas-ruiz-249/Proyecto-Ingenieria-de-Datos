@@ -18,4 +18,6 @@ class Fuente
     public string Url { get; set; }
     public string Tipo { get; set; }
     public string Nombre { get; set; }
+    // When using MongoDB, store the Fuente ObjectId string here
+    public string MongoId { get; set; } = string.Empty;
 }

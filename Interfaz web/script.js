@@ -776,6 +776,7 @@ async function startScraping() {
         isSuccess = false;
     }
     
+    renderArticles();
     // Simulate scraping process
     setTimeout(() => {
         
@@ -786,7 +787,6 @@ async function startScraping() {
             status.textContent = 'Scraping completado. Revisa los nuevos artículos.';
             
             // Update displays after scraping
-            renderArticles();
             renderNotifications();
             updateStats();
             

@@ -15,4 +15,6 @@ class Notificacion
     public int Tipo { get; set; }
     public bool Leido { get; set; }
     public int IdResultado { get; set; }
+    // When using MongoDB, store the IdResultado ObjectId string here
+    public string IdResultadoMongo { get; set; } = string.Empty;
 }

@@ -215,17 +215,42 @@ class Server
         if (_mongo)
         {
             articles = _repositoryMongo.FilterArticles(idStr ?? string.Empty, titular, palabrasClave, tema, nombreFuente, fecha1, fecha2);
+            // For Mongo: return Article.Id and Source.Id as singular fields using MongoId when available
+            var responseList = articles.Select(a => new {
+                Article = new {
+                    Id = a.Article.MongoId ?? string.Empty,
+                    Tema = a.Article.Tema,
+                    Titular = a.Article.Titular,
+                    Subtitulo = a.Article.Subtitulo,
+                    Cuerpo = a.Article.Cuerpo,
+                    Fecha = a.Article.Fecha,
+                    Favorito = a.Article.Favorito
+                },
+                Source = new {
+                    Id = (object)(!string.IsNullOrEmpty(a.Source.MongoId) ? (object)a.Source.MongoId : a.Source.Id),
+                    Url = a.Source.Url,
+                    Tipo = a.Source.Tipo,
+                    Nombre = a.Source.Nombre
+                }
+            }).ToList();
+            string json = JsonSerializer.Serialize(responseList);
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            response.ContentLength64 = buffer.Length;
+            response.ContentType = GetContentType(".json");
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+            return;
         }
         else
         {
             int id = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
             articles = _repository.FilterArticles(id, titular, palabrasClave, tema, nombreFuente, fecha1, fecha2);
         }
-        string json = JsonSerializer.Serialize(articles);
-        byte[] buffer = Encoding.UTF8.GetBytes(json);
-        response.ContentLength64 = buffer.Length;
+        string sqlJson = JsonSerializer.Serialize(articles);
+        byte[] sqlBuffer = Encoding.UTF8.GetBytes(sqlJson);
+        response.ContentLength64 = sqlBuffer.Length;
         response.ContentType = GetContentType(".json");
-        response.OutputStream.Write(buffer, 0, buffer.Length);
+        response.OutputStream.Write(sqlBuffer, 0, sqlBuffer.Length);
         response.OutputStream.Close();
     }
 
@@ -511,6 +536,7 @@ class Server
                     Favorito = a.Article.Favorito
                 },
                 Source = new {
+                    Id = (object)(!string.IsNullOrEmpty(a.Source.MongoId) ? (object)a.Source.MongoId : a.Source.Id),
                     Url = a.Source.Url,
                     Tipo = a.Source.Tipo,
                     Nombre = a.Source.Nombre
@@ -754,6 +780,21 @@ class Server
         if (_mongo)
         {
             notifications = _repositoryMongo.GetNotifications(idStr ?? string.Empty);
+            // For Mongo: return notifications with singular Id (MongoId as string)
+            var responseList = notifications.Select(n => new {
+                Id = n.MongoId ?? string.Empty,
+                Mensaje = n.Mensaje,
+                Tipo = n.Tipo,
+                Leido = n.Leido,
+                IdResultado = n.IdResultadoMongo ?? string.Empty
+            }).ToList();
+            string mongoJson = JsonSerializer.Serialize(new { notifList = responseList });
+            byte[] mongoBuffer = Encoding.UTF8.GetBytes(mongoJson);
+            response.ContentLength64 = mongoBuffer.Length;
+            response.ContentType = GetContentType(".json");
+            response.OutputStream.Write(mongoBuffer, 0, mongoBuffer.Length);
+            response.OutputStream.Close();
+            return;
         }
         else
         {
@@ -817,25 +858,25 @@ class Server
             {
                 responseObj = new {
                     articleList = scrapedData.Select(t => new {
-                        Id = t.article.MongoId,
-                        Tema = t.article.Tema,
-                        Titular = t.article.Titular,
-                        Subtitulo = t.article.Subtitulo,
-                        Cuerpo = t.article.Cuerpo,
-                        Fecha = t.article.Fecha,
-                        IdResultado = t.article.IdResultadoMongo,
-                        Favorito = t.article.Favorito
+                        Id = t.article?.MongoId ?? string.Empty,
+                        Tema = t.article?.Tema ?? string.Empty,
+                        Titular = t.article?.Titular ?? string.Empty,
+                        Subtitulo = t.article?.Subtitulo ?? string.Empty,
+                        Cuerpo = t.article?.Cuerpo ?? string.Empty,
+                        Fecha = t.article?.Fecha ?? string.Empty,
+                        IdResultado = t.article?.IdResultadoMongo ?? string.Empty,
+                        Favorito = t.article?.Favorito ?? false
                     }).ToList(),
                     sourceList = scrapedData.Select(t => new {
-                        Url = t.source.Url,
-                        Tipo = t.source.Tipo,
-                        Nombre = t.source.Nombre
+                        Url = t.source?.Url ?? string.Empty,
+                        Tipo = t.source?.Tipo ?? string.Empty,
+                        Nombre = t.source?.Nombre ?? string.Empty
                     }).ToList(),
                     result = new {
-                        Id = _crawler.LastResult.MongoId,
-                        Estado = _crawler.LastResult.Estado,
-                        FechaExtraccion = _crawler.LastResult.FechaExtraccion,
-                        Cantidad = _crawler.LastResult.Cantidad
+                        Id = _crawler.LastResult?.MongoId ?? string.Empty,
+                        Estado = _crawler.LastResult?.Estado ?? 0,
+                        FechaExtraccion = _crawler.LastResult?.FechaExtraccion ?? string.Empty,
+                        Cantidad = _crawler.LastResult?.Cantidad ?? 0
                     } 
                 };
             }
