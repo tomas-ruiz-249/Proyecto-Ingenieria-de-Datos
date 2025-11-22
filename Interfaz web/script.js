@@ -723,7 +723,7 @@ function addSource(e) {
 
 //done
 function toggleSource(sourceId) {
-    const source = sources.find(s => s.id === sourceId);
+    const source = sources.find(s => s.id == sourceId);
     if (source) {
         source.active = !source.active;
         renderSources();
@@ -733,7 +733,7 @@ function toggleSource(sourceId) {
 }
 //done
 function removeSource(sourceId) {
-    const index = sources.findIndex(s => s.id === sourceId);
+    const index = sources.findIndex(s => s.id == sourceId);
     if (index !== -1) {
         sources.splice(index, 1);
         renderSources();
@@ -919,7 +919,7 @@ function showArticleReviewModal(newArticleIds) {
 
 //done
 function keepArticleFromReview(articleId) {
-    const a = articles.find(a => a.Article.Id === articleId);
+    const a = articles.find(a => a.Article.Id == articleId);
     if (a) {
         a.isDiscarded = false;
         const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);
@@ -934,7 +934,7 @@ function keepArticleFromReview(articleId) {
 
 //done
 function discardArticleFromReview(articleId) {
-    const a = articles.find(a => a.Article.Id === articleId);
+    const a = articles.find(a => a.Article.Id == articleId);
     if (a) {
         a.isDiscarded = true;
         const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);

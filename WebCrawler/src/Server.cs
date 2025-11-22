@@ -297,7 +297,7 @@ class Server
         var response = context.Response;
         var parsedUrl = HttpUtility.ParseQueryString(request.Url?.Query ?? string.Empty);
         var idStr = parsedUrl["id"];
-        int idInt = -1;
+        int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
 
         bool success = false;
         if (_mongo)

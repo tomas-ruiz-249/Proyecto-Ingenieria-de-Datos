@@ -134,7 +134,7 @@
                         Favoritos
                     </button>
                     <button class="tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="scraping">
-                        Scraping
+                        Recoleccion
                     </button>
                     <button class="tab-btn py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="notifications">
                         Notificaciones
@@ -220,7 +220,7 @@
                 <!-- Sources Management Section -->
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">🌐 Gestión de Fuentes</h3>
-                    <p class="text-gray-600 text-sm mb-4">Configura las fuentes de noticias que se utilizarán durante el proceso de scraping.</p>
+                    <p class="text-gray-600 text-sm mb-4">Configura las fuentes de noticias que se utilizarán durante el proceso de recoleccion.</p>
                     
                     <form id="addSourceForm" class="flex gap-4 mb-6">
                         <div class="flex-1">
@@ -249,24 +249,24 @@
                         <h3 class="text-lg font-medium text-gray-900 mb-4">🚀 Control de Scraping</h3>
                         <div class="mb-4 p-3 bg-blue-50 rounded-lg">
                             <p class="text-blue-800 text-sm">
-                                <strong id="activeSources">0 fuentes activas</strong> configuradas para scraping
+                                <strong id="activeSources">0 fuentes activas</strong> configuradas para la recolección de articulos
                             </p>
                         </div>
                         <button id="startScraping" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium mb-4">
-                            🚀 Iniciar Scraping
+                            🚀 Iniciar Recolección
                         </button>
                         <div id="scrapingStatus" class="text-center text-gray-600">
                             Listo para iniciar
                         </div>
                     </div>
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">📊 Historial de Scraping</h3>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">📊 Historial de Recoleccion</h3>
                         <div id="scrapingHistory" class="space-y-3 max-h-64 overflow-y-auto">
                             <!-- Scraping history will be populated here -->
                         </div>
                         <div class="mt-4">
                             <button id="clearOldLogs" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors text-sm">
-                                🗑️ Limpiar Logs Antiguos
+                                🗑️ Limpiar Historial (Limpiará todos los datos asociados)
                             </button>
                         </div>
                     </div>
