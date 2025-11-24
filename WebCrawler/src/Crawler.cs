@@ -28,8 +28,7 @@ class Crawler
 
         _parser.SetStartUrl(startUrl);
         _urls.Enqueue(new Uri(startUrl));
-        repository.RegisterScraping(userId);
-        var resultId = repository.GetLastResultId();
+        var resultId = repository.RegisterScraping(userId);
         LastResult = repository.GetLastResult(resultId) ?? new Result(-1, -1, -1, string.Empty);
         int articleCount = 0;
 

@@ -297,7 +297,7 @@ class Server
         var response = context.Response;
         var parsedUrl = HttpUtility.ParseQueryString(request.Url?.Query ?? string.Empty);
         var idStr = parsedUrl["id"];
-        int idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
+        int idInt = -1;
 
         bool success = false;
         if (_mongo)
@@ -309,6 +309,7 @@ class Server
         else
         {
             // SQL expects int id
+            idInt = string.IsNullOrEmpty(idStr) ? -1 : Convert.ToInt32(idStr);
             if (idInt != -1)
                 success = _repository.DeleteUser(idInt);
         }
