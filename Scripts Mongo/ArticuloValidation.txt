@@ -10,7 +10,7 @@
         bsonType: 'objectId'
       },
       tema: {
-            bsonType: 'string',
+        bsonType: 'string',
         maxLength: 500,
         minLength: 1
       },
