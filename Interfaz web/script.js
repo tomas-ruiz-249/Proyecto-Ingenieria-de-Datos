@@ -117,7 +117,10 @@ function updateNotificationCount() {
 
 //done
 async function toggleNotificationRead(notificationId) {
-    const notification = notifications.find(n => n.Id === notificationId);
+    const notification = notifications.find(n => n.Id == notificationId);
+    if(notificationId.length < 5){
+        notificationId = parseInt(notificationId);
+    }
     if (notification) {
 		try{
             const response = await fetch('/api/update-notif-read',
@@ -140,7 +143,7 @@ async function toggleNotificationRead(notificationId) {
 
 //done
 async function deleteNotification(notificationId) {
-    const index = notifications.findIndex(n => n.Id === notificationId);
+    const index = notifications.findIndex(n => n.Id == notificationId);
     let success = true;
     if (index !== -1) {
 		try{
@@ -437,6 +440,11 @@ async function renderArticles(filteredArticles = null) {
                 },
             });
             let articleDetail = await response.json();
+            articleDetail.forEach(a => {
+                if(a.Article.Id.length < 5){
+                    a.Article.Id = parseInt(a.Article.Id);
+                }
+            });
             articleDetail.forEach(a => a.Article.isDiscarded = false);
             articleDetail.forEach(a => a.Article.isNew = false);
             articleDetail.forEach(a => a.Article.Tema = a.Article.Tema.split(/[,]+/).filter(Boolean))
@@ -620,7 +628,10 @@ function updateStats() {
 
 //done
 async function toggleFavorite(articleId) {
-    const article = articles.find(a => a.Article.Id === articleId);
+    const article = articles.find(a => a.Article.Id == articleId);
+    if(articleId.length < 5){
+        articleId = parseInt(articleId);
+    }
     if (article) {
         try {
             response = await fetch(`/api/update-article-fav`,{
@@ -971,12 +982,12 @@ async function closeArticleReviewModal() {
         renderArticles();
         
         // const keptCount = articles.filter(a => !a.isDiscarded && a.isNew).length - articles.filter(a => !a.isDiscarded && a.isNew && !a.Article.IdResultado).length;
-        // const discardedCount = articles.filter(a => a.isDiscarded && a.Article.IdResultado === scrapingHistory[0]?.id).length;
+        // const discardedCount = articles.filter(a => a.isDiscarded && a.Article.IdResultado == scrapingHistory[0]?.id).length;
 
 		const latestScrapingResultId = scrapingHistory.length > 0 ? scrapingHistory[scrapingHistory.length - 1].Id : null;
         
         // Count articles from the latest scraping session that were kept vs discarded
-        const sessionArticles = articles.filter(a => a.Article.IdResultado === latestScrapingResultId);
+        const sessionArticles = articles.filter(a => a.Article.IdResultado == latestScrapingResultId);
         const keptCount = sessionArticles.filter(a => !a.isDiscarded).length;
         const discardedCount = sessionArticles.filter(a => a.isDiscarded).length;
         articles.forEach(a => a.isNew = false);
@@ -1178,14 +1189,17 @@ function toggleArticleFavoriteFromModal() {
     toggleFavorite(articleId);
     
     // Update modal button
-    const a = articles.find(a => a.Article.Id === articleId);
+    const a = articles.find(a => a.Article.Id == articleId);
     const favoriteBtn = document.getElementById('toggleArticleFavorite');
     favoriteBtn.innerHTML = a.Article.Favorito ? '❤️ Quitar de Favoritos' : '🤍 Agregar a Favoritos';
 }
 
 //done
 async function discardArticle(articleId) {
-    const a = articles.find(a => a.Article.Id === articleId);
+    const a = articles.find(a => a.Article.Id == articleId);
+    if(articleId.length < 5){
+        articleId = parseInt(articleId);
+    }
     if (a) {
         try {
             response = await fetch(`/api/discard-articles?id=${currentUser.id}`,
@@ -1212,9 +1226,9 @@ async function discardArticle(articleId) {
 
 //done
 function removeSource(sourceId) {
-    const source = sources.find(s => s.id === sourceId);
+    const source = sources.find(s => s.id == sourceId);
     if (source) {
-        const index = sources.findIndex(s => s.id === sourceId);
+        const index = sources.findIndex(s => s.id == sourceId);
         sources.splice(index, 1);
         renderSources();
         populateSourceFilters();
@@ -1342,12 +1356,12 @@ function hideAllModals() {
 function showAlert(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification bg-white border-l-4 p-4 rounded-lg shadow-lg max-w-sm ${
-        type === 'success' ? 'border-green-500' : 
-        type === 'error' ? 'border-red-500' : 
-        type === 'warning' ? 'border-yellow-500' : 'border-blue-500'
+        type == 'success' ? 'border-green-500' : 
+        type == 'error' ? 'border-red-500' : 
+        type == 'warning' ? 'border-yellow-500' : 'border-blue-500'
     }`;
     
-    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+    const icon = type == 'success' ? '✅' : type == 'error' ? '❌' : type == 'warning' ? '⚠️' : 'ℹ️';
     
     notification.innerHTML = `
         <div class="flex items-center">

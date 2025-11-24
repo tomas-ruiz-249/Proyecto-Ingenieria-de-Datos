@@ -1,7 +1,7 @@
 using System.Data;
 using MySqlConnector;
 
-class RepositorySQL : IRepository
+class RepositorySQL
 {
     public RepositorySQL(string connectionString)
     {
@@ -25,27 +25,28 @@ class RepositorySQL : IRepository
         return Connected;
     }
 
-    public bool RegisterScraping(int userId)
+    public int RegisterScraping(int userId)
     {
-        var success = true;
+        int resultId = -1;
         try
         {
-            string query = $"""
-                USE WebCrawler;
-                CALL RegistrarResultado({userId})
-            """;
+            string query = "RegistrarResultado";
             var cmd = new MySqlCommand(query, Connection);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("p_idUsuario", userId);
+            cmd.Parameters.AddWithValue("v_idResultado", -1);
+            cmd.Parameters["v_idResultado"].Direction = ParameterDirection.Output;
             int rowsAffected = cmd.ExecuteNonQuery();
+            resultId = Convert.ToInt32(cmd.Parameters["v_idResultado"].Value);
         }
         catch (Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine(ex.Message);
             Console.ForegroundColor = ConsoleColor.White;
-            success = false;
         }
 
-        if (success)
+        if (resultId != -1)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("Scraping attempt registered");
@@ -58,7 +59,7 @@ class RepositorySQL : IRepository
             Console.ForegroundColor = ConsoleColor.White;
         }
 
-        return success;
+        return resultId;
     }
     
     public bool GenerateNotification(int idResult, string message, int type)
@@ -149,6 +150,7 @@ class RepositorySQL : IRepository
         {
             var query = $"UPDATE Resultado SET estado = 0, numArticulos = {articleCount} WHERE id = {resultId}";
             var cmd = new MySqlCommand(query, Connection);
+            int rowsAffected = cmd.ExecuteNonQuery();
             success = true;
         }
         catch (Exception ex)
