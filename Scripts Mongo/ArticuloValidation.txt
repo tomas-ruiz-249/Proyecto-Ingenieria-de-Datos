@@ -65,3 +65,80 @@
     ]
       }
 }
+
+#shell
+
+use WebCrawler;
+
+db.createCollection("Articulo", {
+    "capped": false,
+    "validator": {
+        "$jsonSchema": {
+            "bsonType": "object",
+            "title": "Articulo",
+            "properties": {
+                "_id": {
+                    "bsonType": "objectId"
+                },
+                "idResultado": {
+                    "bsonType": "objectId"
+                },
+                "tema": {
+                    "bsonType": "string",
+                    "maxLength": 500,
+                    "minLength": 1
+                },
+                "titular": {
+                    "bsonType": "string",
+                    "maxLength": 500,
+                    "minLength": 1
+                },
+                "cuerpo": {
+                    "bsonType": "string",
+                    "minLength": 1
+                },
+                "fecha": {
+                    "bsonType": "date"
+                },
+                "fuente": {
+                    "bsonType": "object",
+                    "properties": {
+                        "id": {
+                            "bsonType": "objectId"
+                        },
+                        "url": {
+                            "bsonType": "string",
+                            "maxLength": 500,
+                            "minLength": 1
+                        },
+                        "nombre": {
+                            "bsonType": "string",
+                            "maxLength": 50,
+                            "minLength": 1
+                        },
+                        "tipo": {
+                            "bsonType": "string",
+                            "maxLength": 50,
+                            "minLength": 1
+                        }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                        "id",
+                        "url",
+                        "nombre",
+                        "tipo"
+                    ]
+                }
+            },
+            "additionalProperties": false,
+            "required": [
+                "_id",
+                "idResultado",
+                "fuente"
+            ]
+        }
+    },
+    "validationLevel": "strict",
+    "validationAction": "error"
+});
