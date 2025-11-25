@@ -1,56 +1,3 @@
-create database WebCrawler;
-use WebCrawler;
-
-create table Usuario(
-    id int primary key auto_increment not null,
-    nombres varchar(50) not null,
-    apellidos varchar(50) not null,
-    contraseña varchar(30) not null,
-    correo varchar(50) not null 
-);
-
-create table Fuente(
-    id int primary key auto_increment not null,
-    url varchar(500) not null, 
-    tipo varchar(50),
-    nombre  varchar(500) not null
-);
-
-create table Resultado(
-    id int primary key auto_increment not null,
-    idUsuarioFK int not null,
-    estado  int not null,
-    fechaExtraccion datetime not null,
-	foreign key (idUsuarioFK) references Usuario(id)
-);
-
-create table Articulo(
-    id int primary key auto_increment not null,
-    tema varchar(500),
-    titular varchar(500),
-    subtitulo varchar(500),
-    cuerpo text,
-    fecha datetime,
-    idResultadoFK int not null,
-    favorito bool not null,
-    foreign key (idResultadoFK) references Resultado(id)
-);
-
-create table Notificacion(
-    id int primary key auto_increment not null,
-	mensaje varchar(50) not null,
-    tipo int not null, 
-    idResultadoFK int not null,
-	foreign key (idResultadoFK) references Resultado(id)
-);
-
-create table ArticuloDetalle(
-    idArticuloFK int unique not null,
-    idFuenteFK int unique not null,
-    foreign key (idArticuloFK) references Articulo(id),
-	foreign key (idFuenteFK) references Fuente(id)
-);
-
 USE WebCrawler;
 
 INSERT INTO Usuario (nombres, apellidos, contraseña, correo)
@@ -679,64 +626,24 @@ BEGIN
     DELETE FROM Articulo WHERE idResultadoFK = OLD.id;
 END $$
 DELIMITER ;
-#EN ESTE DOCUMENTO HICE EL PROCEDURE DEL 1, y la funcion del 21 con trigger para logs
-#PROCEDURE DEL 10
-#HU010 Filtrar Articulos la fuente correspondiente
+
+----------------------------------------------------------------------------------------------------- PUNTOS SUSTENTACION JUAN OBANDO ---------------------------------------
+
+-- RQF 15 COMO PROCEDIMIENTO:
 Delimiter $$
-Create Procedure FiltroArticuloFuente(IN idUsuarioP INT, IN fuentes VARCHAR(100))
+Create Procedure RegistrarUsuario(IN xnombres VARCHAR(30), IN xapellidos VARCHAR(30), IN xcontrasena VARCHAR(30), IN xemail VARCHAR(30))
 Begin
-	select * from Articulo a
-    Inner Join ArticuloDetalle ad on a.id = ad.idArticuloFK
-    Inner Join Fuente f on ad.idFuenteFK = f.id
-    INNER JOIN Resultado r ON r.id = a.idResultadoFK
-    Where f.nombre = fuentes AND r.idUsuarioFK = idUsuarioP
-    Order by a.fecha desc;
+	Insert Into Usuario(nombres, apellidos, contraseña, correo)
+    Values (xnombres, xapellidos, xcontrasena, xemail);
 End $$
 Delimiter ;
 
+-- RQF 28 COMO VISTA:
+create view vistaNotificaciones as
+select
+	notificacion.*,
+    resultado.idUsuarioFK
+from notificacion
+inner join resultado on resultado.id = notificacion.idResultadoFK;
 
--- HU021 Eliminar Registros FUNCION QUE CONSULTE LAS FECHAS CON TRIGGER Y ADICIONALEMENTE UNA TABLA------------------------------------------------ 
-delimiter $$
-create function ValidarFecha(xfecha datetime)
-returns bool
-begin
-    if  5 <= timestampdiff(Year, xfecha, CURDATE()) then
-        return false;
-    else
-		return true;
-    end if;
-end$$
-delimiter ;
-
-
-Create table logsEliminados(
-	id int primary key auto_increment not null,
-    fechaExtraccion datetime not null
-);
-
-delimiter $$
-CREATE TRIGGER PasaraElimidados
-Before Delete
-ON Resultado
-FOR EACH ROW
-BEGIN
-    insert into logsEliminados(id, fechaExtraccion) values 
-    (old.id, old.fechaExtraccion);
-END $$
-delimiter ;
-
-delimiter $$
-create procedure EliminarAntiguosProcedure(IN xidResultado INT)
-begin
-	declare resultadoFuncion bool;
-    select ValidarFecha(fechaExtraccion) into resultadoFuncion from Resultado where id = xidResultado;
-    if (!resultadoFuncion) then
-		delete from Resultado where id = xidResultado;
-    end if;
-end $$
-delimiter ;
-
-select * from Resultado;
-call EliminarAntiguosProcedure(2);
-select * from Resultado;
-select * from logsEliminados;
+select * from VistaNotificaciones where idUsuarioFK = 1;
