@@ -90,10 +90,10 @@ async function renderNotifications(filteredNotifications = null) {
                         <div class="text-xs text-gray-500"></div>
                     </div>
                     <div class="flex space-x-1 ml-4">
-                        <button onclick="toggleNotificationRead(${notification.Id})" class="p-1 text-gray-400 hover:text-blue-500" title="${notification.Leido ? 'Marcar como no leída' : 'Marcar como leída'}">
+                        <button onclick="toggleNotificationRead('${notification.Id}')" class="p-1 text-gray-400 hover:text-blue-500" title="${notification.Leido ? 'Marcar como no leída' : 'Marcar como leída'}">
                             ${notification.Leido ? '📧' : '📬'}
                         </button>
-                        <button onclick="deleteNotification(${notification.Id})" class="p-1 text-gray-400 hover:text-red-500" title="Eliminar notificación">
+                        <button onclick="deleteNotification('${notification.Id}')" class="p-1 text-gray-400 hover:text-red-500" title="Eliminar notificación">
                             🗑️
                         </button>
                     </div>
@@ -117,7 +117,10 @@ function updateNotificationCount() {
 
 //done
 async function toggleNotificationRead(notificationId) {
-    const notification = notifications.find(n => n.Id === notificationId);
+    const notification = notifications.find(n => n.Id == notificationId);
+    if(notificationId.length < 5){
+        notificationId = parseInt(notificationId);
+    }
     if (notification) {
 		try{
             const response = await fetch('/api/update-notif-read',
@@ -140,7 +143,7 @@ async function toggleNotificationRead(notificationId) {
 
 //done
 async function deleteNotification(notificationId) {
-    const index = notifications.findIndex(n => n.Id === notificationId);
+    const index = notifications.findIndex(n => n.Id == notificationId);
     let success = true;
     if (index !== -1) {
 		try{
@@ -303,7 +306,7 @@ async function handleLogin(e) {
         console.error('error al iniciar sesion', error)
     }
     
-    if (userId != -1) {
+    if (userId != -1 & userId != "") {
         try {
             response = await fetch(`/api/get-user?id=${userId}`,{
                 method: "GET",
@@ -437,6 +440,11 @@ async function renderArticles(filteredArticles = null) {
                 },
             });
             let articleDetail = await response.json();
+            articleDetail.forEach(a => {
+                if(a.Article.Id.length < 5){
+                    a.Article.Id = parseInt(a.Article.Id);
+                }
+            });
             articleDetail.forEach(a => a.Article.isDiscarded = false);
             articleDetail.forEach(a => a.Article.isNew = false);
             articleDetail.forEach(a => a.Article.Tema = a.Article.Tema.split(/[,]+/).filter(Boolean))
@@ -458,7 +466,7 @@ async function renderArticles(filteredArticles = null) {
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 fade-in">
             <div class="flex justify-between items-start mb-3">
                 <div class="flex-1">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600" onclick="showArticleDetail(${a.Article.Id})">${a.Article.Titular}</h3>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600" onclick="showArticleDetail('${a.Article.Id}')">${a.Article.Titular}</h3>
                     <p class="text-gray-600 text-sm mb-3">${a.Article.Cuerpo.substring(0, 150)}...</p>
                     <div class="flex items-center space-x-4 text-sm text-gray-500">
                         <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${a.Source.Nombre}</span>
@@ -472,16 +480,16 @@ async function renderArticles(filteredArticles = null) {
                     </div>
                 </div>
                 <div class="flex flex-col space-y-2 ml-4">
-                    <button onclick="showArticleDetail(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500" title="Ver artículo completo">
+                    <button onclick="showArticleDetail('${a.Article.Id}')" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500" title="Ver artículo completo">
                         👁️
                     </button>
-                    <button onclick="openArticleLink(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-green-500" title="Abrir enlace">
+                    <button onclick="openArticleLink('${a.Article.Id}')" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-green-500" title="Abrir enlace">
                         🔗
                     </button>
-                    <button onclick="toggleFavorite(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 ${a.Article.Favorito ? 'text-red-500' : 'text-gray-400'}" title="Favorito">
+                    <button onclick="toggleFavorite('${a.Article.Id}')" class="p-2 rounded-lg hover:bg-gray-100 ${a.Article.Favorito ? 'text-red-500' : 'text-gray-400'}" title="Favorito">
                         ${a.Article.Favorito ? '❤️' : '🤍'}
                     </button>
-                    <button onclick="discardArticle(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Descartar">
+                    <button onclick="discardArticle('${a.Article.Id}')" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Descartar">
                         🗑️
                     </button>
                 </div>
@@ -503,7 +511,7 @@ function renderFavorites() {
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 fade-in">
             <div class="flex justify-between items-start mb-3">
                 <div class="flex-1">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600" onclick="showArticleDetail(${a.Article.Id})">${a.Article.Titular}</h3>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2 cursor-pointer hover:text-blue-600" onclick="showArticleDetail('${a.Article.Id}')">${a.Article.Titular}</h3>
                     <p class="text-gray-600 text-sm mb-3">${a.Article.Cuerpo.substring(0, 150)}...</p>
                     <div class="flex items-center space-x-4 text-sm text-gray-500">
                         <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">${a.Source.Nombre}</span>
@@ -517,16 +525,16 @@ function renderFavorites() {
                     </div>
                 </div>
                 <div class="flex flex-col space-y-2 ml-4">
-                    <button onclick="showArticleDetail(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500" title="Ver artículo completo">
+                    <button onclick="showArticleDetail('${a.Article.Id}')" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-blue-500" title="Ver artículo completo">
                         👁️
                     </button>
-                    <button onclick="openArticleLink(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-green-500" title="Abrir enlace">
+                    <button onclick="openArticleLink('${a.Article.Id}')" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-green-500" title="Abrir enlace">
                         🔗
                     </button>
-                    <button onclick="toggleFavorite(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 ${a.Article.Favorito ? 'text-red-500' : 'text-gray-400'}" title="Favorito">
+                    <button onclick="toggleFavorite('${a.Article.Id}')" class="p-2 rounded-lg hover:bg-gray-100 ${a.Article.Favorito ? 'text-red-500' : 'text-gray-400'}" title="Favorito">
                         ${a.Article.Favorito ? '❤️' : '🤍'}
                     </button>
-                    <button onclick="discardArticle(${a.Article.Id})" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Descartar">
+                    <button onclick="discardArticle('${a.Article.Id}')" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-red-500" title="Descartar">
                         🗑️
                     </button>
                 </div>
@@ -551,10 +559,10 @@ function renderSources() {
                 <span class="px-2 py-1 text-xs rounded-full ${source.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                     ${source.active ? 'Activa' : 'Inactiva'}
                 </span>
-                <button onclick="toggleSource(${source.id})" class="p-2 text-gray-400 hover:text-gray-600">
+                <button onclick="toggleSource('${source.id}')" class="p-2 text-gray-400 hover:text-gray-600">
                     ${source.active ? '⏸️' : '▶️'}
                 </button>
-                <button onclick="removeSource(${source.id})" class="p-2 text-gray-400 hover:text-red-500">
+                <button onclick="removeSource('${source.id}')" class="p-2 text-gray-400 hover:text-red-500">
                     🗑️
                 </button>
             </div>
@@ -620,7 +628,10 @@ function updateStats() {
 
 //done
 async function toggleFavorite(articleId) {
-    const article = articles.find(a => a.Article.Id === articleId);
+    const article = articles.find(a => a.Article.Id == articleId);
+    if(articleId.length < 5){
+        articleId = parseInt(articleId);
+    }
     if (article) {
         try {
             response = await fetch(`/api/update-article-fav`,{
@@ -723,7 +734,7 @@ function addSource(e) {
 
 //done
 function toggleSource(sourceId) {
-    const source = sources.find(s => s.id === sourceId);
+    const source = sources.find(s => s.id == sourceId);
     if (source) {
         source.active = !source.active;
         renderSources();
@@ -733,7 +744,7 @@ function toggleSource(sourceId) {
 }
 //done
 function removeSource(sourceId) {
-    const index = sources.findIndex(s => s.id === sourceId);
+    const index = sources.findIndex(s => s.id == sourceId);
     if (index !== -1) {
         sources.splice(index, 1);
         renderSources();
@@ -776,6 +787,7 @@ async function startScraping() {
         isSuccess = false;
     }
     
+    renderArticles();
     // Simulate scraping process
     setTimeout(() => {
         
@@ -786,7 +798,6 @@ async function startScraping() {
             status.textContent = 'Scraping completado. Revisa los nuevos artículos.';
             
             // Update displays after scraping
-            renderArticles();
             renderNotifications();
             updateStats();
             
@@ -879,10 +890,10 @@ function showArticleReviewModal(newArticleIds) {
                                 </div>
                             </div>
                             <div class="flex flex-col space-y-2 ml-4">
-                                <button onclick="keepArticleFromReview(${a.Article.Id})" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                                <button onclick="keepArticleFromReview('${a.Article.Id}')" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
                                     ✅ Conservar
                                 </button>
-                                <button onclick="discardArticleFromReview(${a.Article.Id})" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                <button onclick="discardArticleFromReview('${a.Article.Id}')" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm">
                                     🗑️ Descartar
                                 </button>
                             </div>
@@ -919,7 +930,7 @@ function showArticleReviewModal(newArticleIds) {
 
 //done
 function keepArticleFromReview(articleId) {
-    const a = articles.find(a => a.Article.Id === articleId);
+    const a = articles.find(a => a.Article.Id == articleId);
     if (a) {
         a.isDiscarded = false;
         const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);
@@ -934,7 +945,7 @@ function keepArticleFromReview(articleId) {
 
 //done
 function discardArticleFromReview(articleId) {
-    const a = articles.find(a => a.Article.Id === articleId);
+    const a = articles.find(a => a.Article.Id == articleId);
     if (a) {
         a.isDiscarded = true;
         const articleElement = document.querySelector(`[data-article-id="${articleId}"]`);
@@ -971,12 +982,12 @@ async function closeArticleReviewModal() {
         renderArticles();
         
         // const keptCount = articles.filter(a => !a.isDiscarded && a.isNew).length - articles.filter(a => !a.isDiscarded && a.isNew && !a.Article.IdResultado).length;
-        // const discardedCount = articles.filter(a => a.isDiscarded && a.Article.IdResultado === scrapingHistory[0]?.id).length;
+        // const discardedCount = articles.filter(a => a.isDiscarded && a.Article.IdResultado == scrapingHistory[0]?.id).length;
 
 		const latestScrapingResultId = scrapingHistory.length > 0 ? scrapingHistory[scrapingHistory.length - 1].Id : null;
         
         // Count articles from the latest scraping session that were kept vs discarded
-        const sessionArticles = articles.filter(a => a.Article.IdResultado === latestScrapingResultId);
+        const sessionArticles = articles.filter(a => a.Article.IdResultado == latestScrapingResultId);
         const keptCount = sessionArticles.filter(a => !a.isDiscarded).length;
         const discardedCount = sessionArticles.filter(a => a.isDiscarded).length;
         articles.forEach(a => a.isNew = false);
@@ -1178,14 +1189,17 @@ function toggleArticleFavoriteFromModal() {
     toggleFavorite(articleId);
     
     // Update modal button
-    const a = articles.find(a => a.Article.Id === articleId);
+    const a = articles.find(a => a.Article.Id == articleId);
     const favoriteBtn = document.getElementById('toggleArticleFavorite');
     favoriteBtn.innerHTML = a.Article.Favorito ? '❤️ Quitar de Favoritos' : '🤍 Agregar a Favoritos';
 }
 
 //done
 async function discardArticle(articleId) {
-    const a = articles.find(a => a.Article.Id === articleId);
+    const a = articles.find(a => a.Article.Id == articleId);
+    if(articleId.length < 5){
+        articleId = parseInt(articleId);
+    }
     if (a) {
         try {
             response = await fetch(`/api/discard-articles?id=${currentUser.id}`,
@@ -1212,9 +1226,9 @@ async function discardArticle(articleId) {
 
 //done
 function removeSource(sourceId) {
-    const source = sources.find(s => s.id === sourceId);
+    const source = sources.find(s => s.id == sourceId);
     if (source) {
-        const index = sources.findIndex(s => s.id === sourceId);
+        const index = sources.findIndex(s => s.id == sourceId);
         sources.splice(index, 1);
         renderSources();
         populateSourceFilters();
@@ -1286,7 +1300,7 @@ async function changePassword(e) {
     catch(error){
         console.error('error verificando contraseña', error)
     }
-    if(userId == -1){
+    if(userId == -1 || userId == ""){
         showAlert('Contraseña actual incorrecta...', 'error');
         return;
     }
@@ -1342,12 +1356,12 @@ function hideAllModals() {
 function showAlert(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification bg-white border-l-4 p-4 rounded-lg shadow-lg max-w-sm ${
-        type === 'success' ? 'border-green-500' : 
-        type === 'error' ? 'border-red-500' : 
-        type === 'warning' ? 'border-yellow-500' : 'border-blue-500'
+        type == 'success' ? 'border-green-500' : 
+        type == 'error' ? 'border-red-500' : 
+        type == 'warning' ? 'border-yellow-500' : 'border-blue-500'
     }`;
     
-    const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+    const icon = type == 'success' ? '✅' : type == 'error' ? '❌' : type == 'warning' ? '⚠️' : 'ℹ️';
     
     notification.innerHTML = `
         <div class="flex items-center">

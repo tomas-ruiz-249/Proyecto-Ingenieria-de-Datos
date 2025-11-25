@@ -324,10 +324,10 @@ DELIMITER ;
 -- HU018: Resultado de scraping 
 DELIMITER $$
 CREATE PROCEDURE RegistrarResultado(
-    IN p_idUsuario INT
+    IN p_idUsuario INT,
+    OUT v_idResultado INT
 )
 BEGIN
-    DECLARE v_idResultado INT;
     DECLARE v_estado INT DEFAULT 2; #2: en proceso
 
     -- Crear un nuevo registro en la tabla Resultado
@@ -337,7 +337,7 @@ BEGIN
     SET v_idResultado = LAST_INSERT_ID();
 
     -- Crear una notificación asociada al resultado
-    INSERT INTO Notificacion (mensaje, tipo, idResultadoFK, leido)
+	INSERT INTO Notificacion (mensaje, tipo, idResultadoFK, leido)
     VALUES ('Scraping iniciado...', v_estado, v_idResultado, FALSE);
 END$$
 DELIMITER ;
@@ -584,7 +584,6 @@ DELIMITER ;
 
 #si
 #HU036 Filtrar articulos por busqueda avanzada 
-drop procedure FiltrarArticulos;	
 DELIMITER $$
 Create Procedure FiltrarArticulos(
     IN idUsuarioP INT,
